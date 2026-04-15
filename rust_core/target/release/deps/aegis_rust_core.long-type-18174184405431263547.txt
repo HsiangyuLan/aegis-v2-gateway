@@ -1,0 +1,2 @@
+ArrayBase<ViewRepr<&i64>, Dim<[usize; 2]>, i64>
+SessionInputValue<'_>: From<ArrayBase<ViewRepr<&i64>, Dim<[usize; 2]>, i64>>

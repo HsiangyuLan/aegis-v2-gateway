@@ -1,0 +1,72 @@
+# ── Aegis V2 Gateway — Docker Compose ────────────────────────────────────────
+#
+# Usage:
+#   docker compose build          # build the image from the local Dockerfile
+#   docker compose up             # start in foreground (stream logs)
+#   docker compose up -d          # start in background
+#   docker compose down           # stop and remove container (logs persist)
+#   docker compose logs -f        # follow container logs after -d start
+#
+# Secrets:
+#   Export AEGIS_CLOUD_GEMINI_API_KEY in your shell, or create a .env file:
+#     echo 'AEGIS_CLOUD_GEMINI_API_KEY=your-key-here' > .env
+#   The compose file reads it via ${AEGIS_CLOUD_GEMINI_API_KEY:-} — an empty
+#   value activates mock mode (no real Gemini calls, useful for local dev).
+#
+# Parquet persistence:
+#   ./logs/finops on the host is bind-mounted to /app/logs/finops inside the
+#   container.  All Parquet FinOps files written by RequestLogger survive
+#   container restarts and docker compose down.
+# ─────────────────────────────────────────────────────────────────────────────
+
+services:
+  aegis-api:
+    build: .
+    image: aegis-v2:latest
+    container_name: aegis-api
+    restart: unless-stopped
+
+    ports:
+      # Host port 8080 → container port 8080 (uvicorn)
+      - "8080:8080"
+
+    volumes:
+      # Parquet FinOps logs persisted outside container lifecycle.
+      # AEGIS_FINOPS_LOG_DIR (set below) must match this target path.
+      - ./logs/finops:/app/logs/finops
+
+    environment:
+      # ── Cloud backend ──────────────────────────────────────────────────────
+      # Set in host shell or .env file — never hardcode a real key here.
+      # Empty value → mock mode (all cloud inferences return a placeholder).
+      AEGIS_CLOUD_GEMINI_API_KEY: "${AEGIS_CLOUD_GEMINI_API_KEY:-}"
+
+      # ── FinOps logging ─────────────────────────────────────────────────────
+      # Must match the volume mount target path above.
+      AEGIS_FINOPS_LOG_DIR: /app/logs/finops
+      # Flush buffered records to Parquet every 5 seconds.
+      AEGIS_FINOPS_FLUSH_INTERVAL_S: "5.0"
+
+      # ── Observability ──────────────────────────────────────────────────────
+      AEGIS_LOG_LEVEL: INFO
+
+      # ── httpx connection pool ──────────────────────────────────────────────
+      AEGIS_HTTPX_MAX_CONNECTIONS: "100"
+
+      # ── Circuit breaker ────────────────────────────────────────────────────
+      AEGIS_CIRCUIT_BREAKER_FAILURE_THRESHOLD: "3"
+      AEGIS_CIRCUIT_BREAKER_COOLDOWN_S: "30.0"
+
+    healthcheck:
+      # Uses only the Python standard library — no curl dependency needed in
+      # the slim image.  /healthz returns 200 even when NVML is unavailable,
+      # so the container is never marked unhealthy due to GPU absence.
+      test:
+        - "CMD"
+        - "python"
+        - "-c"
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8080/healthz')"
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

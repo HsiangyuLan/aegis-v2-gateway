@@ -1,0 +1,54 @@
+[package]
+name        = "aegis-rust-core"
+version     = "0.3.0"
+edition     = "2021"
+description = "Aegis V2 — Rust ONNX: SessionPool, tokenizers, cascading dual-model routing"
+
+[lib]
+name       = "aegis_rust_core"
+crate-type = ["cdylib", "rlib"]
+
+# ── Release profile optimisations ─────────────────────────────────────────────
+[profile.release]
+opt-level       = 3
+lto             = "thin"     # link-time optimisation (moderate compile time cost)
+codegen-units   = 1          # single CGU maximises inlining across modules
+panic           = "abort"    # no unwinding overhead in release builds
+
+# ── Feature flags ─────────────────────────────────────────────────────────────
+[features]
+default = []
+
+extension-module = ["pyo3/extension-module"]
+
+# ort-backend + tokenizers: real ONNX inference with HuggingFace tokenizer.
+ort-backend = ["dep:ort", "dep:ndarray", "dep:tokenizers"]
+
+# ── Runtime dependencies ──────────────────────────────────────────────────────
+[dependencies]
+pyo3 = { version = "0.22" }
+
+# ONNX Runtime (Sprint 4.1+)
+ort     = { version = "=2.0.0-rc.12", features = ["copy-dylibs", "ndarray"], optional = true }
+ndarray = { version = "0.17", optional = true }
+
+# HuggingFace tokenizers (Sprint 4.2+): replaces the placeholder whitespace splitter.
+# Provides true WordPiece / BPE tokenization matching all-MiniLM-L6-v2's vocabulary.
+# fancy-regex: pure-Rust regex backend (no C library dependency, portable).
+# Alternative: "onig" (Oniguruma C library; faster but requires system headers).
+tokenizers = { version = "0.22", optional = true, default-features = false, features = ["fancy-regex"] }
+
+tower   = { version = "0.4", features = ["timeout", "util", "retry"] }
+tokio   = { version = "1",   features = ["rt", "time"] }
+tracing = "0.1"
+
+# ── Dev / benchmark dependencies ──────────────────────────────────────────────
+[dev-dependencies]
+criterion          = { version = "0.5", features = ["html_reports"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tokio              = { version = "1",   features = ["rt", "macros"] }
+pyo3               = { version = "0.22", features = ["auto-initialize"] }
+
+[[bench]]
+name    = "embedding_bench"
+harness = false

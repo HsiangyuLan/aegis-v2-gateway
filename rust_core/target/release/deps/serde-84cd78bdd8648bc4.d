@@ -1,0 +1,14 @@
+/Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/deps/serde-84cd78bdd8648bc4.d: /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/build/serde-46eda70d34545f25/out/private.rs
+
+/Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/deps/libserde-84cd78bdd8648bc4.rlib: /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/build/serde-46eda70d34545f25/out/private.rs
+
+/Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/deps/libserde-84cd78bdd8648bc4.rmeta: /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs /Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/build/serde-46eda70d34545f25/out/private.rs
+
+/Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/lib.rs:
+/Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/integer128.rs:
+/Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/mod.rs:
+/Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/de.rs:
+/Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/serde-1.0.228/src/private/ser.rs:
+/Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/build/serde-46eda70d34545f25/out/private.rs:
+
+# env-dep:OUT_DIR=/Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/build/serde-46eda70d34545f25/out

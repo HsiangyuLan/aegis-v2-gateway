@@ -1,0 +1,16 @@
+# ── Development / testing dependencies ───────────────────────────────────────
+-r requirements.txt
+
+pytest>=8.3.0
+pytest-asyncio>=0.24.0   # async test support; asyncio_mode=auto configured in pytest.ini
+httpx>=0.27.0             # async HTTP client for FastAPI endpoint testing
+
+# ── Rust extension build ──────────────────────────────────────────────────────
+# maturin builds the rust_core/ PyO3 extension into a Python wheel.
+# After installing: cd rust_core && maturin develop --release
+maturin>=1.5,<2.0
+onnx>=1.15.0          # used by scripts/create_dummy_model.py for Sprint 4 SEP testing
+transformers>=4.35.0  # HuggingFace tokenizer for Sprint 4.1 real-model test
+huggingface_hub>=0.20 # download model files from HF Hub
+rich>=13.0.0          # terminal dashboard (app/dashboard.py)
+onnxruntime>=1.18.0   # INT8 quantization (scripts/create_dummy_model.py)

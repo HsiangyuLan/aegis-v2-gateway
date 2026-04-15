@@ -1,0 +1,13 @@
+# Rust 隔離
+rust_core/target/
+**/*.rs.bk
+
+# Python 隔離
+venv/
+__pycache__/
+*.parquet
+*.pdf
+
+# 視覺資產隔離 (不要讓 AI 去讀圖片二進位碼)
+brands/*.png
+brands/*.jpg

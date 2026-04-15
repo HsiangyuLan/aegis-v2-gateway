@@ -1,0 +1,1 @@
+/Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/libaegis_rust_core.dylib: /Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/src/cascade.rs /Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/src/embedding.rs /Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/src/lib.rs

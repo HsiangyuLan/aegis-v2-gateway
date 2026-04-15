@@ -1,0 +1,14 @@
+/Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/deps/thiserror-a3d67933601b394c.d: /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/lib.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/aserror.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/display.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/var.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/private.rs /Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/build/thiserror-3d6da6fcfddf4a77/out/private.rs
+
+/Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/deps/libthiserror-a3d67933601b394c.rlib: /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/lib.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/aserror.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/display.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/var.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/private.rs /Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/build/thiserror-3d6da6fcfddf4a77/out/private.rs
+
+/Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/deps/libthiserror-a3d67933601b394c.rmeta: /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/lib.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/aserror.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/display.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/var.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/private.rs /Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/build/thiserror-3d6da6fcfddf4a77/out/private.rs
+
+/Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/lib.rs:
+/Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/aserror.rs:
+/Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/display.rs:
+/Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/var.rs:
+/Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/thiserror-2.0.18/src/private.rs:
+/Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/build/thiserror-3d6da6fcfddf4a77/out/private.rs:
+
+# env-dep:OUT_DIR=/Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/build/thiserror-3d6da6fcfddf4a77/out

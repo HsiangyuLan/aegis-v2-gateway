@@ -1,0 +1,26 @@
+# ── Core gateway dependencies ────────────────────────────────────────────────
+fastapi>=0.115.0
+# uvicorn[standard] bundles uvloop + httptools + websockets; we pin them
+# explicitly below so the event-loop swap is guaranteed regardless of how
+# uvicorn is invoked (e.g. gunicorn workers).
+uvicorn[standard]>=0.32.0
+uvloop>=0.21.0          # libuv-backed event loop (C extension); Python 3.13+
+httptools>=0.6.4        # fast HTTP/1.1 parser used by uvicorn
+pydantic>=2.9.0         # Pydantic v2; required for frozen model config
+
+# ── FinOps data pipeline ─────────────────────────────────────────────────────
+# polars 1.x ships a native Parquet writer (no pyarrow required) and the
+# streaming execution engine used by finops_analysis.py.
+polars>=1.0.0
+
+# ── Routing / Cloud backend ───────────────────────────────────────────────────
+# http2 extra enables H2 multiplexing – multiple Gemini requests share one TCP
+# connection, reducing connection-pool pressure under concurrency.
+httpx[http2]>=0.27.0
+
+# ── Hardware telemetry ────────────────────────────────────────────────────────
+# nvidia-ml-py3 ships the pynvml Python bindings.  Import succeeds even when
+# no NVIDIA driver is present; the NvmlClient performs lazy init and degrades
+# gracefully when nvmlInit() fails at runtime (e.g. inside containers without
+# /dev/nvidia* device mounts).
+nvidia-ml-py3>=7.352.0

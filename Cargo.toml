@@ -1,0 +1,31 @@
+# ── Project Antigravity — Cargo Workspace ─────────────────────────────────────
+#
+# 16-crate microservice architecture for the Agentic Commerce gateway.
+# Each crate compiles independently; cdylib crates are exposed to Python via
+# PyO3 + maturin.  The rlib crate-type on each member allows cross-crate
+# dependencies within the workspace without duplicate compilation.
+#
+# Members:
+#   rust_core            — Aegis V2 ONNX embedding engine (Sprint 4+)
+#   crates/antigravity_core — Phase 1: zero-copy FFI gateway core
+# ─────────────────────────────────────────────────────────────────────────────
+
+[workspace]
+members  = [
+    "rust_core",
+    "crates/antigravity_core",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+
+# ── Release profile (workspace-level, applies to all members) ─────────────────
+# Migrated from rust_core/Cargo.toml to suppress the "profiles for the non root
+# package will be ignored" warning emitted by Cargo when the workspace root
+# does not define the profile.
+[profile.release]
+opt-level     = 3
+lto           = "thin"   # link-time optimisation (moderate compile time cost)
+codegen-units = 1        # single CGU maximises inlining across all crates
+panic         = "abort"  # no unwinding overhead in release builds

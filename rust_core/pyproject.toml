@@ -1,0 +1,14 @@
+[build-system]
+requires      = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[project]
+name            = "aegis-rust-core"
+version         = "0.1.0"
+requires-python = ">=3.11"
+
+[tool.maturin]
+# Features passed when building via maturin (wheel / develop).
+# extension-module: PyO3 shared-library mode (no libpython linking).
+# ort-backend:      ONNX Runtime inference path (requires models/minilm-v2.onnx).
+features = ["extension-module", "ort-backend"]

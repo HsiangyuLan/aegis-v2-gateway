@@ -1,0 +1,41 @@
+# ── Runtime / dev artifacts ───────────────────────────────────────────────────
+logs/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+.git/
+.cursor/
+
+# ── Dev-only files and directories ────────────────────────────────────────────
+tests/
+load_tests/
+scripts/
+docs/
+frontend/
+output/
+api_server.py
+README.md
+ARCHITECTURE.md
+Dockerfile
+.dockerignore
+pytest.ini
+requirements-dev.txt
+
+# ── Rust toolchain and build artifacts ────────────────────────────────────────
+# aegis_rust_core degrades gracefully to Python mock SEP on ImportError.
+# No Rust compilation needed inside the image.
+rust_core/
+
+# ── Heavy / duplicate model files ─────────────────────────────────────────────
+# Only models/minilm-v2-int8.onnx (~22 MB) and models/tokenizer/ (~712 KB)
+# are copied into the image.  All other model variants are excluded.
+models/minilm-v2.onnx
+models/_onnx/
+models/_onnx_int8/
+models/_hf_cache/
+
+# ── Large binary assets ────────────────────────────────────────────────────────
+*.pdf
+*.mp4

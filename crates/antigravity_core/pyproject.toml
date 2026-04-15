@@ -1,0 +1,34 @@
+# ── antigravity_core — maturin build configuration ────────────────────────────
+#
+# Compile the Rust crate into a Python extension module (.so / .pyd) using
+# maturin.  This file lives next to Cargo.toml so maturin can locate the
+# crate automatically.
+#
+# Usage (from any directory):
+#   maturin develop --manifest-path crates/antigravity_core/Cargo.toml
+#
+# Or from within this directory:
+#   maturin develop
+#   maturin develop --release          # optimised build
+#   maturin build --release            # produce a wheel for distribution
+# ─────────────────────────────────────────────────────────────────────────────
+
+[build-system]
+requires      = ["maturin>=1.5,<2.0"]
+build-backend = "maturin"
+
+[project]
+name            = "antigravity_core"
+version         = "0.1.0"
+requires-python = ">=3.11"
+description     = "Project Antigravity — Zero-copy FFI gateway core (Phase 1)"
+
+[tool.maturin]
+# extension-module: required for PyO3 shared-library mode.
+# Instructs the linker NOT to link libpython at build time; the symbols are
+# resolved at runtime when CPython loads the .so.
+features = ["extension-module"]
+
+# module-name must match the #[pymodule] function name in lib.rs.
+# Defaults to the package name ("antigravity_core") — explicit for clarity.
+module-name = "antigravity_core"

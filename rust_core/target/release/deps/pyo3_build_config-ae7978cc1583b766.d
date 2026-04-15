@@ -1,0 +1,14 @@
+/Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/deps/pyo3_build_config-ae7978cc1583b766.d: /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.22.6/src/lib.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.22.6/src/errors.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.22.6/src/impl_.rs /Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/build/pyo3-build-config-beec913978e7d75b/out/pyo3-build-config-file.txt /Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/build/pyo3-build-config-beec913978e7d75b/out/pyo3-build-config.txt
+
+/Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/deps/libpyo3_build_config-ae7978cc1583b766.rlib: /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.22.6/src/lib.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.22.6/src/errors.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.22.6/src/impl_.rs /Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/build/pyo3-build-config-beec913978e7d75b/out/pyo3-build-config-file.txt /Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/build/pyo3-build-config-beec913978e7d75b/out/pyo3-build-config.txt
+
+/Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/deps/libpyo3_build_config-ae7978cc1583b766.rmeta: /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.22.6/src/lib.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.22.6/src/errors.rs /Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.22.6/src/impl_.rs /Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/build/pyo3-build-config-beec913978e7d75b/out/pyo3-build-config-file.txt /Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/build/pyo3-build-config-beec913978e7d75b/out/pyo3-build-config.txt
+
+/Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.22.6/src/lib.rs:
+/Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.22.6/src/errors.rs:
+/Users/zhuwenping/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/pyo3-build-config-0.22.6/src/impl_.rs:
+/Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/build/pyo3-build-config-beec913978e7d75b/out/pyo3-build-config-file.txt:
+/Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/build/pyo3-build-config-beec913978e7d75b/out/pyo3-build-config.txt:
+
+# env-dep:CARGO_PKG_VERSION=0.22.6
+# env-dep:OUT_DIR=/Users/zhuwenping/Desktop/aegis-v2-engine/rust_core/target/release/build/pyo3-build-config-beec913978e7d75b/out

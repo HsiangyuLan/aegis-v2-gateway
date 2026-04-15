@@ -1,0 +1,20 @@
+# Aegis V2 Architecture Constitution — Project Antigravity Edition
+
+## 0. Python 強制規範 (Mandatory Python Standards)
+- 所有 Python 代碼必須包含完整的 Type Hints (PEP 621 標準)。
+- 所有函式必須具備防禦性 `try-except` 區塊，捕獲並記錄具體例外類型。
+- 所有核心數學邏輯 (如 AEI 計算、帕累托最優、成本模型) 必須加上 Google-style Docstrings。
+- 若編譯或執行失敗，必須利用 Traceback 進行自動修復 (Self-Healing)，直到通過。
+
+## 1. Zero-Bullshit Output (防懶惰協議)
+- 絕對禁止使用 placeholders (如 `// ... rest of code`)。
+- 必須產出完整、可執行的生產級代碼。
+
+## 2. FinOps & Rust Context
+- 這是一個關於 Rust FFI 邊緣運算與 FinOps 算力套利的專案。
+- 所有的 Python 代碼必須考慮效能，盡量使用異步 `asyncio`。
+
+## 3. Self-Healing & YOLO
+- 若遇到缺少的 Python packages，請主動調用終端機進行 `pip install`。
+- 若發生報錯，請主動分析 Traceback 並嘗試修復，直到通過為止。
+- 產出的圖表嚴禁使用外部靜態資產，一律使用程式碼動態生成 (如 WeasyPrint CSS)。
