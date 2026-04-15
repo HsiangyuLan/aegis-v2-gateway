@@ -1,3 +1,15 @@
+# Dependencies & environments
+node_modules/
+venv/
+
+# Secrets & local env (keep tracked example files explicit)
+.env*
+!frontend/.env.local.example
+
+# Logs & OS
+*.log
 .DS_Store
 .localized
-venv/
+
+# Rust build artifacts
+target/
