@@ -1,0 +1,525 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Aegis V2 — Global Design System
+   Tailwind CSS v4 · @theme · Material Design 3 Dark Scheme
+   Synced to blueprint tailwind.config (primary seed: #8ed5ff)
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@import "tailwindcss";
+
+/* ─────────────────────────────────────────────────────────────────────────
+   @theme — Tailwind v4 Design Token Registry
+   Fonts loaded via next/font in layout.tsx; CDN @import removed to avoid
+   double-load. Material Symbols injected via <link> in layout.tsx <head>.
+   ───────────────────────────────────────────────────────────────────────── */
+@theme {
+  /* ── Typography ──────────────────────────────────────────────── */
+  --font-headline: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-body:     'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-label:    'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-mono:     'Geist Mono', ui-monospace, 'Cascadia Code', monospace;
+
+  /* ── Zero-radius (blueprint requirement: borderRadius DEFAULT 0px) */
+  --radius:    0px;
+  --radius-sm: 0px;
+  --radius-md: 0px;
+  --radius-lg: 0px;
+  --radius-xl: 0px;
+  --radius-2xl: 0px;
+  --radius-full: 9999px; /* pill shapes only where explicit */
+
+  /* ── MD3 Primary ─────────────────────────────────────────────── */
+  --color-primary:              #8ed5ff;
+  --color-on-primary:           #00354a;
+  --color-primary-container:    #38bdf8;   /* blueprint: bright active cyan */
+  --color-on-primary-container: #004965;   /* blueprint: dark text on bright */
+  --color-primary-fixed:        #c4e7ff;
+  --color-primary-fixed-dim:    #7bd0ff;
+  --color-on-primary-fixed:     #001e2c;
+  --color-on-primary-fixed-variant: #004c69;
+  --color-inverse-primary:      #00668a;
+
+  /* ── MD3 Secondary ───────────────────────────────────────────── */
+  --color-secondary:              #c8c6c9;
+  --color-on-secondary:           #303033;
+  --color-secondary-container:    #47464a;
+  --color-on-secondary-container: #b6b4b8;
+  --color-secondary-fixed:        #e4e1e5;
+  --color-secondary-fixed-dim:    #c8c6c9;
+  --color-on-secondary-fixed:     #1b1b1e;
+  --color-on-secondary-fixed-variant: #47464a;
+
+  /* ── MD3 Tertiary ────────────────────────────────────────────── */
+  --color-tertiary:              #cdcbd6;
+  --color-on-tertiary:           #2f3038;
+  --color-tertiary-container:    #b1b0ba;   /* blueprint: light grey */
+  --color-on-tertiary-container: #43434c;
+  --color-tertiary-fixed:        #e3e1ec;
+  --color-tertiary-fixed-dim:    #c7c5d0;
+  --color-on-tertiary-fixed:     #1a1b23;
+  --color-on-tertiary-fixed-variant: #46464f;
+
+  /* ── MD3 Error ───────────────────────────────────────────────── */
+  --color-error:              #ffb4ab;
+  --color-on-error:           #690005;
+  --color-error-container:    #93000a;
+  --color-on-error-container: #ffdad6;
+
+  /* ── MD3 Background ──────────────────────────────────────────── */
+  --color-background:    #020203;   /* blueprint */
+  --color-on-background: #e5e1e4;  /* blueprint */
+
+  /* ── MD3 Surface ─────────────────────────────────────────────── */
+  --color-surface:       #131315;  /* blueprint */
+  --color-on-surface:    #e5e1e4;  /* blueprint */
+  --color-surface-dim:   #131315;
+  --color-surface-bright: #39393b;
+
+  /* ── MD3 Surface Variant ─────────────────────────────────────── */
+  --color-surface-variant:    #353437;
+  --color-on-surface-variant: #bdc8d1;
+
+  /* ── MD3 Surface Tint (blueprint: primary-fixed-dim) ────────── */
+  --color-surface-tint: #7bd0ff;
+
+  /* ── MD3 Surface Container Hierarchy ────────────────────────── */
+  --color-surface-container-lowest:  #0e0e10;
+  --color-surface-container-low:     #1c1b1d;
+  --color-surface-container:         #201f22;
+  --color-surface-container-high:    #2a2a2c;
+  --color-surface-container-highest: #353437;
+
+  /* ── MD3 Outline ─────────────────────────────────────────────── */
+  --color-outline:         #87929a;
+  --color-outline-variant: #3e484f;
+
+  /* ── MD3 Inverse ─────────────────────────────────────────────── */
+  --color-inverse-surface:    #e5e1e4;
+  --color-inverse-on-surface: #313032;
+
+  /* ── MD3 Scrim / Shadow ──────────────────────────────────────── */
+  --color-scrim:  #000000;
+  --color-shadow: #000000;
+
+  /* ── Aegis V2 Extended Palette ───────────────────────────────── */
+  --color-aegis-cyan:    #38bdf8;
+  --color-aegis-indigo:  #818cf8;
+  --color-aegis-emerald: #34d399;
+  --color-aegis-amber:   #fbbf24;
+  --color-aegis-red:     #f87171;
+  --color-aegis-purple:  #c084fc;
+  --color-aegis-dark:    #020203;
+  --color-aegis-grid:    #1e293b;
+
+  /* ── Glow Shadows ────────────────────────────────────────────── */
+  --shadow-glow-primary: 0 0 15px color-mix(in srgb, #8ed5ff 40%, transparent);
+  --shadow-glow-cyan:    0 0 15px color-mix(in srgb, #38bdf8 40%, transparent);
+  --shadow-glow-emerald: 0 0 12px color-mix(in srgb, #34d399 35%, transparent);
+  --shadow-glow-red:     0 0 12px color-mix(in srgb, #f87171 40%, transparent);
+
+  /* ── Transition Durations ────────────────────────────────────── */
+  --duration-fast:   100ms;
+  --duration-base:   200ms;
+  --duration-slow:   350ms;
+  --duration-slower: 500ms;
+
+  /* ── Z-Index Scale ───────────────────────────────────────────── */
+  --z-below:   -1;
+  --z-base:     0;
+  --z-raised:   10;
+  --z-overlay:  20;
+  --z-modal:    30;
+  --z-toast:    40;
+  --z-scanline: 50;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   @theme inline — computed aliases (var() refs, no extra utility classes)
+   ───────────────────────────────────────────────────────────────────────── */
+@theme inline {
+  --font-sans:      var(--font-body);
+  --font-geist-mono: var(--font-mono);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   :root — Semantic CSS variables for non-Tailwind CSS consumers
+   ───────────────────────────────────────────────────────────────────────── */
+:root {
+  --bg:          #020203;
+  --fg:          #e5e1e4;
+  --card-bg:     #201f22;
+  --card-border: #3e484f;
+  --accent:      #8ed5ff;
+  --accent-dim:  #7bd0ff;
+  --accent-active: #38bdf8;
+
+  --scrollbar-track: #0e0e10;
+  --scrollbar-thumb: #47464a;
+  --scrollbar-thumb-hover: #87929a;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   BASE STYLES
+   ───────────────────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  background-color: #020203;
+  background-image:
+    radial-gradient(circle at 50% 40%, rgba(56, 189, 248, 0.03) 0%, transparent 70%),
+    radial-gradient(circle, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+  background-size: 100% 100%, 24px 24px;
+  background-attachment: fixed;
+  color: #e5e1e4;
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar             { width: 6px; height: 6px; }
+::-webkit-scrollbar-track       { background: var(--scrollbar-track); }
+::-webkit-scrollbar-thumb       { background: var(--scrollbar-thumb); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: var(--scrollbar-thumb-hover); }
+
+::selection {
+  background: color-mix(in srgb, #38bdf8 30%, transparent);
+  color: #c4e7ff;
+}
+
+:focus-visible {
+  outline: 2px solid #8ed5ff;
+  outline-offset: 2px;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-headline);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+code, kbd, pre {
+  font-family: var(--font-mono);
+  font-size: 0.875em;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   BLUEPRINT CUSTOM CLASSES — preserved exactly as authored
+   ───────────────────────────────────────────────────────────────────────── */
+
+/* specular-highlights: inset top-left light + outer bottom-right shadow */
+.specular-highlights {
+  border: 1px solid transparent;
+  box-shadow:
+    inset 1px 1px 0px 0px rgba(255, 255, 255, 0.05),
+    1px 1px 0px 0px rgba(0, 0, 0, 0.5);
+}
+
+/* luminous-body: glowing large display number effect */
+.luminous-body {
+  text-shadow: 0 0 20px rgba(56, 189, 248, 0.4), 0 0 40px rgba(56, 189, 248, 0.1);
+  letter-spacing: -0.07em;
+  filter: drop-shadow(0 0 10px rgba(56, 189, 248, 0.2));
+}
+
+/* soft-glow-data: subtle white halo on data values */
+.soft-glow-data {
+  text-shadow: 0 0 1px rgba(255, 255, 255, 0.8);
+}
+
+/* entropy-mask-v: vertical bar with cyan gradient + bottom fade */
+.entropy-mask-v {
+  background: linear-gradient(to bottom, #38bdf8 0%, rgba(56, 189, 248, 0.1) 60%, transparent 100%);
+  mask-image: linear-gradient(to top, transparent 0%, black 20%);
+  -webkit-mask-image: linear-gradient(to top, transparent 0%, black 20%);
+}
+
+/* entropy-mask-log: top-fade + blur for ledger list */
+.entropy-mask-log {
+  mask-image: linear-gradient(to bottom, transparent 0%, black 15%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 15%);
+  backdrop-filter: blur(2px);
+}
+
+/* pin: 2×2 cyan dot with intense glow (blueprint spec: no border-radius) */
+.pin {
+  width: 2px;
+  height: 2px;
+  background: #38bdf8;
+  box-shadow: 0 0 12px 3px rgba(56, 189, 248, 0.8);
+  border-radius: 0;
+}
+
+/* scanline-overlay: CRT horizontal line pattern, pointer-events: none */
+.scanline-overlay {
+  background: linear-gradient(to bottom, transparent 50%, rgba(56, 189, 248, 0.02) 50%);
+  background-size: 100% 4px;
+  pointer-events: none;
+}
+
+/* phosphor-blur: heavy backdrop blur for glassmorphism panels */
+.phosphor-blur {
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+/* tabular: tabular-nums for financial data alignment */
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* secondary-label: dim non-critical labels */
+.secondary-label {
+  opacity: 0.55;
+}
+
+/* ── @keyframes marquee — TickerTape scroll ── */
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  animation: marquee 30s linear infinite;
+  will-change: transform;
+}
+
+/* ── @keyframes ping-node — TelemetryMap pulsing dot ── */
+@keyframes ping-node {
+  75%, 100% { transform: scale(2); opacity: 0; }
+}
+
+.animate-ping {
+  animation: ping-node 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   REDUCED MOTION
+   ───────────────────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   SUPREME PORTFOLIO THEME — PRODUCTION HARD-CODED TOKENS
+   spec.md §1 Brand Tokens — zero fallbacks in production.
+   All values are authoritative HEX literals per spec. No approximations.
+   Font: Futura Heavy must be served from /public/fonts/FuturaHeavy.woff2.
+   Color: #FF0000 / #FFFFFF / #000000 — no Alpha, no gradient, no deviation.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+@font-face {
+  font-family: 'Futura Heavy';
+  src: url('/fonts/FuturaHeavy.woff2') format('woff2'),
+       url('/fonts/FuturaHeavy.woff')  format('woff');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Futura Heavy';
+  src: url('/fonts/FuturaHeavyItalic.woff2') format('woff2'),
+       url('/fonts/FuturaHeavyItalic.woff')  format('woff');
+  font-weight: 800;
+  font-style: italic;
+  font-display: swap;
+}
+
+.supreme-root {
+  /* ── §1 Hard-coded production tokens — no var() fallback chains ── */
+  background-color: #FFFFFF;
+  color: #000000;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  border-radius: 0 !important;
+
+  /* ── §2 Layout metrics ── */
+  --nav-width:   180px;
+  --nav-offset:  200px;
+  --grid-gap:    20px;
+  --content-pr:  40px;
+}
+
+.supreme-root *,
+.supreme-root *::before,
+.supreme-root *::after {
+  border-radius: 0 !important;
+  box-sizing: border-box;
+}
+
+/* ── §1 Logo Box: 130×40, #FF0000 background, Futura Heavy italic centred ── */
+.supreme-logo-box {
+  width: 130px;
+  height: 40px;
+  background-color: #FF0000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.supreme-logo-text {
+  color: #FFFFFF;
+  font-family: 'Futura Heavy', sans-serif;
+  font-weight: 800;
+  font-style: italic;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  text-align: center;
+  user-select: none;
+}
+
+/* ── §2 Navigation: 180px absolute, text-align:right — Supreme asymmetry ── */
+.supreme-nav {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 180px;
+  text-align: right;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  line-height: 1.8;
+  color: #000000;
+}
+
+.supreme-nav a {
+  display: block;
+  color: #000000;
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0;
+  transition: color 0s;
+}
+
+.supreme-nav a:hover,
+.supreme-nav a.active {
+  color: #FF0000;
+}
+
+/* ── §4.3 Null-URL intercept: empty white box, 1px #000000 border ────────── */
+.supreme-card-empty {
+  aspect-ratio: 1 / 1;
+  border: 1px solid #000000;
+  background-color: #FFFFFF;
+}
+
+/* ── §4.1 Image fallback shell ───────────────────────────────────────────── */
+.supreme-img-shell {
+  background-color: #F4F4F4;
+  overflow: hidden;
+  aspect-ratio: 1 / 1;
+}
+
+.supreme-img-shell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+/* ── 1px Industrial Incision Lines ───────────────────────────────────────── */
+.incision-b  { border-bottom: 1px solid #000000; }
+.incision-t  { border-top:    1px solid #000000; }
+.incision-l  { border-left:   1px solid #000000; }
+.incision-r  { border-right:  1px solid #000000; }
+.incision    { border:        1px solid #000000; }
+
+/* ── Slide-in Drawer ──────────────────────────────────────────────────────── */
+.supreme-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.35);
+  z-index: 100;
+}
+
+.supreme-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(480px, 90vw);
+  background-color: #FFFFFF;
+  border-left: 1px solid #000000;
+  z-index: 101;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── §2 Timestamp ─────────────────────────────────────────────────────────── */
+.supreme-timestamp {
+  margin-top: 16px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  color: #000000;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+/* ── §3 Lookbook Carousel: 15vw wide, 1:5 aspect, 0px gap ───────────────── */
+.supreme-lookbook {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.supreme-lookbook::-webkit-scrollbar { display: none; }
+
+.supreme-lookbook-item {
+  flex-shrink: 0;
+  width: 15vw;
+  aspect-ratio: 1 / 5;
+  overflow: hidden;
+  background-color: #F4F4F4;
+}
+
+.supreme-lookbook-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+/* ── §4.2 Grid + Responsive Degradation ──────────────────────────────────── */
+.supreme-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 1023px) {
+  .supreme-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+@media (max-width: 767px) {
+  .supreme-grid { grid-template-columns: repeat(2, 1fr); }
+  .supreme-nav  { position: static; width: 100%; text-align: left; }
+}
+
+
+
