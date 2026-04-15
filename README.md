@@ -1,6 +1,6 @@
 # Aegis V2.5: Zero-Trust Agentic Commerce Gateway
 
-![Aegis Command Center Dashboard](./aegis-dashboard.jpg)
+![Aegis Command Center Dashboard](./aegis-dashboard.png)
 
 **Aegis V2.5** is a production-grade control plane for agentic commerce: a **zero-copy Rust / Next.js gateway** that sits between your systems and external intelligence, turning two existential risks into measurable advantage—**data leakage into LLMs** and **uncontrolled inference spend**.
 
@@ -29,6 +29,7 @@ You get **predictable failure modes**—the kind you document in a security pack
 | Lever | What it buys you |
 |--------|------------------|
 | **Inference economics** | **Saves >$90,000 annually** by achieving an **80% cache hit rate on LLM inference**—routing repeat semantic work away from metered APIs without starving agents that genuinely need fresh reasoning. |
+| **Talent / immigration economics** | Structured hiring and mobility for **F-1 Change of Status (COS)** can unlock on the order of a **$100,000 H-1B tariff exemption** versus alternative paths—real TCO when you are scaling agentic teams under visa constraints. |
 | **Regulatory / reputational** | **Prevents massive regulatory fines by masking PII before it hits external LLMs**—shrinking exposure to GDPR-, HIPAA-, and PCI-class enforcement and the seven- and eight-figure fine ranges that make headlines. |
 
 Aegis is framed as **margin and risk** in the same SKU: cheaper inference where it is safe, harder boundaries where it is not.
@@ -37,7 +38,7 @@ Aegis is framed as **margin and risk** in the same SKU: cheaper inference where 
 
 ## Visual proof
 
-The screenshot above (**`./aegis-dashboard.jpg`**) is the **Aegis Command Center**—live FinOps posture, integrity signals, and PII scan telemetry in one surface. Replace the image in-repo when you drop in your production capture.
+The screenshot above (**`./aegis-dashboard.png`**) is the **Aegis Command Center**—live FinOps posture, integrity signals, and PII scan telemetry in one surface. Replace the image in-repo when you drop in your production capture.
 
 ---
 
