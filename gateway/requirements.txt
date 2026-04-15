@@ -1,0 +1,17 @@
+# ── Project Antigravity Phase 4: FastAPI Bifrost Gateway ─────────────────────
+#
+# Install:
+#   pip install -r gateway/requirements.txt
+#
+# NOTE: `antigravity_core` (the PyO3 Rust wheel) is NOT listed here.
+# It must be installed first via maturin into the same virtualenv:
+#
+#   source venv/bin/activate
+#   maturin develop --manifest-path crates/antigravity_core/Cargo.toml
+#
+# After that, `import antigravity_core` works because maturin installs the
+# wheel as an editable package directly into the venv's site-packages.
+# ─────────────────────────────────────────────────────────────────────────────
+
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
