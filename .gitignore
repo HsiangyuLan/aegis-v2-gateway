@@ -6,6 +6,10 @@ venv/
 .env*
 !frontend/.env.local.example
 
+# Python
+__pycache__/
+*.py[cod]
+
 # Logs & OS
 *.log
 .DS_Store
