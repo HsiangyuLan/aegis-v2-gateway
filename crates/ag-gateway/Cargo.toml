@@ -1,0 +1,29 @@
+[package]
+name    = "ag-gateway"
+version = "0.1.0"
+edition = "2021"
+description = "Axum Antigravity API — scan, search, finops, health"
+
+[[bin]]
+name = "ag-gateway"
+path = "src/main.rs"
+
+[dependencies]
+ag-config          = { path = "../ag-config" }
+ag-error           = { path = "../ag-error" }
+ag-finops-model    = { path = "../ag-finops-model" }
+ag-http-common     = { path = "../ag-http-common" }
+ag-observability   = { path = "../ag-observability" }
+ag-pii-onnx        = { path = "../ag-pii-onnx" }
+ag-pii-regex       = { path = "../ag-pii-regex" }
+ag-redact          = { path = "../ag-redact" }
+ag-search-tantivy  = { path = "../ag-search-tantivy" }
+ag-types           = { path = "../ag-types" }
+ag-zero-copy       = { path = "../ag-zero-copy" }
+axum               = { workspace = true }
+serde              = { workspace = true }
+serde_json         = { workspace = true }
+tokio              = { workspace = true }
+tower              = { workspace = true }
+tower-http         = { workspace = true }
+tracing            = { workspace = true }

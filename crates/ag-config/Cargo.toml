@@ -1,0 +1,9 @@
+[package]
+name    = "ag-config"
+version = "0.1.0"
+edition = "2021"
+description = "Project Antigravity — environment configuration"
+
+[dependencies]
+serde = { workspace = true }
+ag-error = { path = "../ag-error" }

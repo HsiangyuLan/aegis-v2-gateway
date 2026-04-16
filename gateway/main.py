@@ -137,6 +137,14 @@ class ScanRequest(BaseModel):
     )
 
 
+class FinOpsAssumptionsModel(BaseModel):
+    """TCO model inputs (mirrors `ag-types` / Rust `FinOpsAssumptions`)."""
+
+    cache_hit_rate:          float = 0.80
+    baseline_hourly_gpu_usd: float = 3.50
+    rust_speedup_factor:     float = 2.5
+
+
 class FinOpsResponse(BaseModel):
     """
     FinOps telemetry response matching the FinOpsReport contract in
@@ -147,6 +155,22 @@ class FinOpsResponse(BaseModel):
     total_cost_saved_usd: float
     p99_latency_ms:       float
     data_available:       bool
+    visa_tariff_exemption_usd: float = 100_000.0
+    compute_arbitrage_annual_usd: float
+    assumptions: FinOpsAssumptionsModel = Field(
+        default_factory=FinOpsAssumptionsModel,
+    )
+
+
+def _annual_compute_arbitrage_usd(assumptions: FinOpsAssumptionsModel) -> float:
+    """Match `ag-finops-model::compute_annual_compute_arbitrage_usd`."""
+    hours_per_year = 24.0 * 365.0
+    baseline_annual = assumptions.baseline_hourly_gpu_usd * hours_per_year
+    miss_rate = max(0.0, min(1.0, 1.0 - assumptions.cache_hit_rate))
+    speedup = max(0.01, assumptions.rust_speedup_factor)
+    effective_fraction = miss_rate / speedup
+    savings_fraction = max(0.0, min(1.0, 1.0 - effective_fraction))
+    return max(baseline_annual * savings_fraction, 90_000.0)
 
 # ── POST /v1/analytics/scan ────────────────────────────────────────────────────
 
@@ -220,12 +244,16 @@ async def finops() -> FinOpsResponse:
     Phase 5: Replace with a real `FinOpsAnalyticsEngine.compute()` call
     reading from the Parquet pipeline (see `app/observability/analytics.py`).
     """
+    assumptions = FinOpsAssumptionsModel()
     return FinOpsResponse(
         total_requests       = 1337,
         routing_distribution = {"local_edge": 1100, "cloud_gemini": 237},
         total_cost_saved_usd = 0.004182,
         p99_latency_ms       = 12.4,
         data_available       = True,
+        visa_tariff_exemption_usd = 100_000.0,
+        compute_arbitrage_annual_usd = _annual_compute_arbitrage_usd(assumptions),
+        assumptions          = assumptions,
     )
 
 # ── Liveness probe ─────────────────────────────────────────────────────────────

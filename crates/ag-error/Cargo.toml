@@ -1,0 +1,10 @@
+[package]
+name    = "ag-error"
+version = "0.1.0"
+edition = "2021"
+description = "Project Antigravity — unified errors"
+
+[dependencies]
+thiserror = { workspace = true }
+axum      = { workspace = true }
+serde     = { workspace = true }

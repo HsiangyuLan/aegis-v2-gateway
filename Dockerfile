@@ -1,96 +1,49 @@
-# ── Aegis V2 Gateway — Production Multi-Stage Build ──────────────────────────
+# Project Antigravity — `ag-gateway` (Rust / Axum) multi-stage image
+# Python API image (legacy): see Dockerfile.python
+# Build: docker build -t ag-gateway:local .
+# Run:   docker run --rm -p 8080:8080 \
+#          -v "$(pwd)/data/tantivy_index:/data/tantivy_index" \
+#          -v "$(pwd)/models:/app/models:ro" \
+#          ag-gateway:local
 #
-# Stage 1 (builder): Install Python dependencies into an isolated virtualenv.
-#                    The builder stage is discarded after the build; only
-#                    /venv is carried forward, keeping the final image lean.
-#
-# Stage 2 (runner):  Minimal runtime image.  Copies /venv from builder and
-#                    application code.  Runs as non-root user "appuser"
-#                    (UID/GID 1001) — never root.
-#
-# GPU-enabled (requires NVIDIA Container Toolkit on the host):
-#   docker build -t aegis-v2:latest .
-#   docker run --gpus all -p 8080:8080 aegis-v2:latest
-#
-# CPU-only (NVML degrades gracefully — all endpoints return 200):
-#   docker run -p 8080:8080 aegis-v2:latest
-#
-# Rust extension (aegis_rust_core):
-#   Not compiled inside this image.  entropy.py falls back to the Python
-#   mock SEP on ImportError — no Rust toolchain needed at runtime.
-# ─────────────────────────────────────────────────────────────────────────────
+# Listen: 8080 (AG_GATEWAY_LISTEN). Writable Tantivy: /data/tantivy_index.
+# Optional ONNX: mount assets under /app/models and set AG_PII_NER_*.
 
-# ── Stage 1: builder ──────────────────────────────────────────────────────────
-
-FROM python:3.13-slim AS builder
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1
-
-WORKDIR /build
-
-# Create an isolated virtualenv so the runner stage receives a clean,
-# self-contained /venv directory — no interference with system Python paths.
-RUN python -m venv /venv
-
-# Install production dependencies into the venv.
-# --no-cache-dir keeps the layer small (pip cache is useless in ephemeral builders).
-COPY requirements.txt .
-RUN /venv/bin/pip install --no-cache-dir --upgrade pip \
- && /venv/bin/pip install --no-cache-dir -r requirements.txt
-
-
-# ── Stage 2: runner ───────────────────────────────────────────────────────────
-
-FROM python:3.13-slim AS runner
-
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    # Activate the virtualenv for all subsequent RUN / CMD / ENTRYPOINT calls.
-    PATH="/venv/bin:$PATH"
-
+FROM rust:1.84-bookworm AS builder
 WORKDIR /app
 
-# Create a non-root system user and group.
-# --system:         no login shell entry in /etc/passwd by default
-# --no-create-home: no home directory (not needed for a service process)
-# --shell:          explicit nologin to block interactive logins
-RUN groupadd --system --gid 1001 appgroup \
- && useradd  --system --uid 1001 --gid appgroup \
-             --no-create-home --shell /sbin/nologin appuser
+COPY Cargo.toml Cargo.lock ./
+COPY crates ./crates
+COPY rust_core ./rust_core
 
-# ── Copy dependencies from builder ────────────────────────────────────────────
-COPY --from=builder /venv /venv
+RUN cargo build --release -p ag-gateway
 
-# ── Copy application source ───────────────────────────────────────────────────
-COPY app/ ./app/
+FROM debian:bookworm-slim
 
-# ── Copy essential model files only (~23 MB total) ────────────────────────────
-# minilm-v2-int8.onnx  → AEGIS_RUST_FAST_MODEL_PATH default
-# tokenizer/           → AEGIS_RUST_TOKENIZER_PATH default
-# Heavy variants (minilm-v2.onnx ~86 MB, _onnx/, _hf_cache/) are excluded
-# via .dockerignore; they are only needed if the full Rust ONNX path is enabled.
-COPY models/minilm-v2-int8.onnx    ./models/minilm-v2-int8.onnx
-COPY models/tokenizer/             ./models/tokenizer/
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && apt-get clean
 
-# ── Create Parquet log directory and fix ownership ────────────────────────────
-# RequestLogger writes Parquet files to AEGIS_FINOPS_LOG_DIR (default: ./logs/finops).
-# The directory must be pre-created and writable by appuser before the process starts.
-# docker-compose bind-mounts the host ./logs/finops here for persistence across
-# container restarts.
-RUN mkdir -p logs/finops \
- && chown -R appuser:appgroup /app
+ENV RUST_LOG=info
+ENV AG_GATEWAY_LISTEN=0.0.0.0:8080
+ENV AG_TANTIVY_INDEX_DIR=/data/tantivy_index
 
-# ── Drop privileges ───────────────────────────────────────────────────────────
-USER appuser
+COPY models/pii-ner /app/models/pii-ner
+
+COPY --from=builder /app/target/release/ag-gateway /usr/local/bin/ag-gateway
+
+RUN groupadd --system --gid 65532 appgroup \
+    && useradd --system --uid 65532 --gid appgroup --home /nonexistent --shell /usr/sbin/nologin appuser \
+    && mkdir -p /data/tantivy_index \
+    && chown -R 65532:65532 /data /app/models
+
+USER 65532:65532
 
 EXPOSE 8080
 
-# uvloop + httptools are explicitly requested so the event-loop swap is
-# guaranteed regardless of how uvicorn detects its optional extras.
-CMD ["uvicorn", "app.main:app", \
-     "--host", "0.0.0.0", \
-     "--port", "8080", \
-     "--loop", "uvloop", \
-     "--http", "httptools", \
-     "--workers", "1"]
+VOLUME ["/data/tantivy_index", "/app/models"]
+
+HEALTHCHECK --interval=15s --timeout=3s --start-period=25s --retries=3 \
+    CMD curl -sf http://127.0.0.1:8080/health >/dev/null || exit 1
+
+CMD ["/usr/local/bin/ag-gateway"]

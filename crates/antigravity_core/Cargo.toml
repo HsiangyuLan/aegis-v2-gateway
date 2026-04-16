@@ -2,46 +2,24 @@
 name        = "antigravity_core"
 version     = "0.1.0"
 edition     = "2021"
-description = "Project Antigravity — Zero-copy FFI gateway core (Phase 3)"
+description = "Project Antigravity — PyO3 bridge to ag-* workspace crates"
 
 [lib]
 name       = "antigravity_core"
 crate-type = ["cdylib", "rlib"]
-# cdylib → Python .so / .pyd extension module (loaded by maturin develop)
-# rlib   → linkable as a Rust dependency by other workspace crates in the
-#           16-crate Agentic Commerce architecture (Phase 2+)
 
-# ── Feature flags ─────────────────────────────────────────────────────────────
 [features]
 default          = []
 extension-module = ["pyo3/extension-module"]
-# extension-module: PyO3 shared-library mode — no libpython linking at build
-# time, required when the .so is loaded by an existing Python interpreter.
 
-# ── Dependencies ──────────────────────────────────────────────────────────────
 [dependencies]
-# PyO3 0.22 — matches rust_core/ to avoid duplicate compilations in workspace.
-# The extension-module feature is gated so rlib consumers do not pull it in.
-pyo3       = { version = "0.22" }
+pyo3       = { workspace = true }
+serde      = { workspace = true }
+serde_json = { workspace = true }
+tokio      = { workspace = true }
 
-# Serde: #[derive(Serialize)] for CommandResponse JSON response struct.
-serde      = { version = "1",  features = ["derive"] }
-serde_json = { version = "1" }
-
-# Tokio: Phase 2 full runtime — multi-thread work-stealing scheduler required
-# for tokio::spawn fan-out.  "full" also enables sync, io-util, net for
-# Phase 3 Tantivy/gRPC integration.
-tokio      = { version = "1",  features = ["full"] }
-
-# Regex: PII pattern matching — compiled once via OnceLock at startup.
-# regex 1.x ships the DFA/NFA hybrid engine; Regex is Send + Sync,
-# safe to store in a static OnceLock and share across Tokio threads.
-# default-features = false drops the Unicode character class tables
-# (not needed for email/CC/SSN patterns which are all ASCII-class).
-regex      = { version = "1" }
-# Note: default features include unicode support required for \b word boundaries.
-# If binary size becomes a concern, use regex-lite crate instead (ASCII-only, no \b).
-
-# ── Profile: release optimisations ────────────────────────────────────────────
-# Inherit workspace release profile (defined in root Cargo.toml if needed).
-# Phase 1 default profile is sufficient; override here when benchmarking.
+ag-types      = { path = "../ag-types" }
+ag-zero-copy  = { path = "../ag-zero-copy" }
+ag-pii-regex  = { path = "../ag-pii-regex" }
+ag-pii-onnx   = { path = "../ag-pii-onnx" }
+ag-redact     = { path = "../ag-redact" }

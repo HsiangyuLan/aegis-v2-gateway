@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "command": "python3 .cursor/hooks/pre_tool_gate.py",
+        "failClosed": true
+      }
+    ],
+    "postToolUse": [
+      {
+        "command": "python3 .cursor/hooks/post_tool_audit.py"
+      }
+    ],
+    "beforeShellExecution": [
+      {
+        "command": "python3 .cursor/hooks/before_shell_gate.py",
+        "failClosed": true
+      }
+    ]
+  }
+}

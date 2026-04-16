@@ -1,0 +1,56 @@
+# ── Aegis V2 Python API Gateway (legacy path) ─────────────────────────────────
+# Build: docker build -f Dockerfile.python -t aegis-v2-python:latest .
+#
+# This image runs uvicorn + app.main; it is separate from the Rust `ag-gateway`
+# image defined in the root `Dockerfile` (Apollo / Antigravity protocol).
+
+# ── Stage 1: builder ──────────────────────────────────────────────────────────
+
+FROM python:3.13-slim AS builder
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+WORKDIR /build
+
+RUN python -m venv /venv
+
+COPY requirements.txt .
+RUN /venv/bin/pip install --no-cache-dir --upgrade pip \
+ && /venv/bin/pip install --no-cache-dir -r requirements.txt
+
+
+# ── Stage 2: runner ───────────────────────────────────────────────────────────
+
+FROM python:3.13-slim AS runner
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PATH="/venv/bin:$PATH"
+
+WORKDIR /app
+
+RUN groupadd --system --gid 1001 appgroup \
+ && useradd  --system --uid 1001 --gid appgroup \
+             --no-create-home --shell /sbin/nologin appuser
+
+COPY --from=builder /venv /venv
+
+COPY app/ ./app/
+
+COPY models/minilm-v2-int8.onnx    ./models/minilm-v2-int8.onnx
+COPY models/tokenizer/             ./models/tokenizer/
+
+RUN mkdir -p logs/finops \
+ && chown -R appuser:appgroup /app
+
+USER appuser
+
+EXPOSE 8080
+
+CMD ["uvicorn", "app.main:app", \
+     "--host", "0.0.0.0", \
+     "--port", "8080", \
+     "--loop", "uvloop", \
+     "--http", "httptools", \
+     "--workers", "1"]

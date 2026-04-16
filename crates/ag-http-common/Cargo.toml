@@ -1,0 +1,12 @@
+[package]
+name    = "ag-http-common"
+version = "0.1.0"
+edition = "2021"
+description = "Shared Axum middleware (trace, headers)"
+
+[dependencies]
+axum    = { workspace = true }
+http    = "1"
+tower   = { workspace = true }
+tracing = { workspace = true }
+uuid    = { version = "1", features = ["v4"] }

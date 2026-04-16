@@ -1,0 +1,8 @@
+[package]
+name    = "ag-bench-harness"
+version = "0.1.0"
+edition = "2021"
+description = "Criterion defaults for Antigravity microbenchmarks"
+
+[dependencies]
+criterion = { workspace = true }

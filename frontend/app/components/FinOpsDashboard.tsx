@@ -38,6 +38,13 @@ interface FinOpsReport {
   total_cost_saved_usd: number;
   p99_latency_ms: number;
   data_available: boolean;
+  visa_tariff_exemption_usd?: number;
+  compute_arbitrage_annual_usd?: number;
+  assumptions?: {
+    cache_hit_rate?: number;
+    baseline_hourly_gpu_usd?: number;
+    rust_speedup_factor?: number;
+  };
 }
 
 // ── SWR fetcher ───────────────────────────────────────────────────────────────

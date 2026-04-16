@@ -1,0 +1,8 @@
+[package]
+name    = "ag-redact"
+version = "0.1.0"
+edition = "2021"
+description = "Merge PII spans and produce redacted UTF-8 string"
+
+[dependencies]
+ag-types = { path = "../ag-types" }

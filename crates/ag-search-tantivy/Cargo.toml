@@ -1,0 +1,11 @@
+[package]
+name    = "ag-search-tantivy"
+version = "0.1.0"
+edition = "2021"
+description = "Tantivy full-text index + query API"
+
+[dependencies]
+ag-error = { path = "../ag-error" }
+ag-types = { path = "../ag-types" }
+tantivy  = { workspace = true }
+tracing  = { workspace = true }

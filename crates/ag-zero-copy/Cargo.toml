@@ -1,0 +1,8 @@
+[package]
+name    = "ag-zero-copy"
+version = "0.1.0"
+edition = "2021"
+description = "Arc payload ownership + UTF-8 invariants for FFI"
+
+[dependencies]
+ag-error = { path = "../ag-error" }

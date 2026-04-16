@@ -27,6 +27,7 @@ import {
   useCallback,
   Suspense,
 } from "react";
+import { ArbitrageOverview } from "./components/command/ArbitrageOverview";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Edges, Stars } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
@@ -1203,6 +1204,8 @@ export default function SovereignPage() {
               <SystemIntegrityChart />
             </div>
           </div>
+
+          <ArbitrageOverview apiBase={API} />
 
           {/* ── Asset bar ── */}
           <div

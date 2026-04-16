@@ -1,0 +1,96 @@
+# ag-gateway — RollingUpdate: maxUnavailable 0, maxSurge 1 (Apollo-style).
+# In-process ONNX timeout / circuit behaviour (~10ms budget) lives in ag-gateway;
+# readiness /ready ensures Tantivy path is warm before traffic.
+#
+# CI: replace `image:` with registry + immutable tag (git SHA).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ag-gateway
+  labels:
+    app.kubernetes.io/name: ag-gateway
+    app.kubernetes.io/component: api
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ag-gateway
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: ag-gateway
+    spec:
+      securityContext:
+        fsGroup: 65532
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: ag-gateway
+          # Local: `docker build -t ag-gateway:local .` then set imagePullPolicy: Never on dev clusters.
+          image: ag-gateway:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            - name: RUST_LOG
+              value: info
+            - name: AG_GATEWAY_LISTEN
+              value: "0.0.0.0:8080"
+            - name: AG_TANTIVY_INDEX_DIR
+              value: /data/tantivy_index
+          volumeMounts:
+            - name: tantivy-data
+              mountPath: /data/tantivy_index
+            - name: models
+              mountPath: /app/models
+              readOnly: true
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: "2"
+              memory: 2Gi
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 2
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 30
+            periodSeconds: 5
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            runAsUser: 65532
+            runAsGroup: 65532
+            capabilities:
+              drop:
+                - ALL
+      volumes:
+        - name: tantivy-data
+          emptyDir: {}
+        - name: models
+          emptyDir: {}

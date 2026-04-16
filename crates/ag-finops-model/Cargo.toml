@@ -1,0 +1,8 @@
+[package]
+name    = "ag-finops-model"
+version = "0.1.0"
+edition = "2021"
+description = "TCO and arbitrage pure functions"
+
+[dependencies]
+ag-types = { path = "../ag-types" }

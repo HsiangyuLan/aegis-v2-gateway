@@ -13,3 +13,9 @@ venv/
 
 # Rust build artifacts
 target/
+
+# Local Tantivy index (ag-gateway)
+data/tantivy_index/
+
+# Cursor hook audit (local)
+logs/agent-hook-audit.jsonl

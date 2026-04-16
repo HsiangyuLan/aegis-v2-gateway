@@ -8,13 +8,6 @@ description = "Aegis V2 — Rust ONNX: SessionPool, tokenizers, cascading dual-m
 name       = "aegis_rust_core"
 crate-type = ["cdylib", "rlib"]
 
-# ── Release profile optimisations ─────────────────────────────────────────────
-[profile.release]
-opt-level       = 3
-lto             = "thin"     # link-time optimisation (moderate compile time cost)
-codegen-units   = 1          # single CGU maximises inlining across modules
-panic           = "abort"    # no unwinding overhead in release builds
-
 # ── Feature flags ─────────────────────────────────────────────────────────────
 [features]
 default = []

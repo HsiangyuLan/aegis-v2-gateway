@@ -1,0 +1,8 @@
+[package]
+name    = "ag-types"
+version = "0.1.0"
+edition = "2021"
+description = "Project Antigravity — shared serde DTOs"
+
+[dependencies]
+serde = { workspace = true }

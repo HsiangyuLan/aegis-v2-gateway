@@ -1,0 +1,9 @@
+[package]
+name    = "ag-resilience"
+version = "0.1.0"
+edition = "2021"
+description = "Tower resilience presets (circuit breaker + timeout helpers)"
+
+[dependencies]
+tower                           = { workspace = true }
+tower-resilience-circuitbreaker = { workspace = true }

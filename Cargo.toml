@@ -1,31 +1,56 @@
-# ── Project Antigravity — Cargo Workspace ─────────────────────────────────────
+# ── Project Antigravity — 16-Crate Cargo Workspace ─────────────────────────────
 #
-# 16-crate microservice architecture for the Agentic Commerce gateway.
-# Each crate compiles independently; cdylib crates are exposed to Python via
-# PyO3 + maturin.  The rlib crate-type on each member allows cross-crate
-# dependencies within the workspace without duplicate compilation.
-#
-# Members:
-#   rust_core            — Aegis V2 ONNX embedding engine (Sprint 4+)
-#   crates/antigravity_core — Phase 1: zero-copy FFI gateway core
+# Sovereign Core: rlib crates compose the gateway; cdylib crates expose PyO3.
 # ─────────────────────────────────────────────────────────────────────────────
 
 [workspace]
-members  = [
-    "rust_core",
+members = [
+    "crates/ag-types",
+    "crates/ag-error",
+    "crates/ag-config",
+    "crates/ag-zero-copy",
+    "crates/ag-pii-regex",
+    "crates/ag-pii-onnx",
+    "crates/ag-redact",
+    "crates/ag-search-tantivy",
+    "crates/ag-resilience",
+    "crates/ag-http-common",
+    "crates/ag-gateway",
     "crates/antigravity_core",
+    "rust_core",
+    "crates/ag-observability",
+    "crates/ag-bench-harness",
+    "crates/ag-finops-model",
 ]
 resolver = "2"
 
 [workspace.package]
 edition = "2021"
 
-# ── Release profile (workspace-level, applies to all members) ─────────────────
-# Migrated from rust_core/Cargo.toml to suppress the "profiles for the non root
-# package will be ignored" warning emitted by Cargo when the workspace root
-# does not define the profile.
+[workspace.dependencies]
+tokio       = { version = "1", features = ["full"] }
+serde       = { version = "1", features = ["derive"] }
+serde_json  = "1"
+thiserror   = "2"
+tracing     = "0.1"
+regex       = "1"
+once_cell   = "1.19"
+axum        = { version = "0.8", features = ["json"] }
+tower       = { version = "0.5", features = ["timeout", "util", "limit"] }
+tower-http  = { version = "0.6", features = ["cors", "trace", "timeout"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+ort         = { version = "=2.0.0-rc.12", features = ["ndarray"] }
+ndarray     = { version = "0.17" }
+tokenizers  = { version = "0.22", default-features = false, features = ["fancy-regex"] }
+tantivy     = "0.26"
+tower-resilience = "0.9.3"
+tower-resilience-circuitbreaker = "0.9.3"
+tower-resilience-core = "0.9.3"
+pyo3        = { version = "0.22" }
+criterion   = { version = "0.5", features = ["html_reports"] }
+
 [profile.release]
 opt-level     = 3
-lto           = "thin"   # link-time optimisation (moderate compile time cost)
-codegen-units = 1        # single CGU maximises inlining across all crates
-panic         = "abort"  # no unwinding overhead in release builds
+lto           = "thin"
+codegen-units = 1
+panic         = "abort"

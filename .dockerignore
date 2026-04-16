@@ -1,4 +1,4 @@
-# ── Runtime / dev artifacts ───────────────────────────────────────────────────
+# ── Shared Docker build context ───────────────────────────────────────────────
 logs/
 venv/
 __pycache__/
@@ -8,7 +8,8 @@ __pycache__/
 .git/
 .cursor/
 
-# ── Dev-only files and directories ────────────────────────────────────────────
+target/
+
 tests/
 load_tests/
 scripts/
@@ -18,24 +19,14 @@ output/
 api_server.py
 README.md
 ARCHITECTURE.md
-Dockerfile
-.dockerignore
 pytest.ini
 requirements-dev.txt
 
-# ── Rust toolchain and build artifacts ────────────────────────────────────────
-# aegis_rust_core degrades gracefully to Python mock SEP on ImportError.
-# No Rust compilation needed inside the image.
-rust_core/
-
-# ── Heavy / duplicate model files ─────────────────────────────────────────────
-# Only models/minilm-v2-int8.onnx (~22 MB) and models/tokenizer/ (~712 KB)
-# are copied into the image.  All other model variants are excluded.
+# Python image (Dockerfile.python) still uses minilm + tokenizer; keep heavy trees out
 models/minilm-v2.onnx
 models/_onnx/
 models/_onnx_int8/
 models/_hf_cache/
 
-# ── Large binary assets ────────────────────────────────────────────────────────
 *.pdf
 *.mp4

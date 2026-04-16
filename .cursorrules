@@ -18,3 +18,8 @@
 - 若遇到缺少的 Python packages，請主動調用終端機進行 `pip install`。
 - 若發生報錯，請主動分析 Traceback 並嘗試修復，直到通過為止。
 - 產出的圖表嚴禁使用外部靜態資產，一律使用程式碼動態生成 (如 WeasyPrint CSS)。
+
+## 4. Hook Integrity（SOC2 — 非協商安全邊界）
+- [`.cursor/hooks.json`](.cursor/hooks.json) 內所有 `command` **必須**使用明確直譯器（例如 `python3 .cursor/hooks/<script>.py`），**禁止**僅依賴 shebang 與執行位元作為唯一假設（避免 exit 126 與 fail-closed 死鎖）。
+- `preToolUse` 與 `beforeShellExecution` 之 **`failClosed: true` 為非協商邊界**：所有 Agent 與自動化預設在 **fail-closed** 下運作；放寬、繞過或移除 hooks 須經審核並留存紀錄，以支援 SOC2 類控制敘述（工具與 shell 執行前策略閘道）。
+- Hook 變更須可稽核；`postToolUse` 可寫入 `logs/agent-hook-audit.jsonl`（預設不入庫，見 `.gitignore`）。
