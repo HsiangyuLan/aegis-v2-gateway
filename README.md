@@ -4,7 +4,20 @@ This repository is a **production-grade sovereign control plane** for agentic co
 
 ![Cyber-FinOps Command Center — Day-1 execution surface](./aegis-dashboard.png)
 
-**Figure 1.** Cyber-FinOps command center (`./aegis-dashboard.png`). Replace with your production capture when you harden the edge.
+**Figure 1.** Cyber-FinOps command center hero asset (`./aegis-dashboard.png`). It is **generated programmatically** (reproducible FinOps demo figures and C4-style layout)—regenerate after copy changes:
+
+```bash
+python3 -m pip install Pillow
+python3 scripts/generate_aegis_dashboard.py -o ./aegis-dashboard.png
+```
+
+Design reference (static): [`docs/assets/image_target.png`](docs/assets/image_target.png).
+
+**Day-1 execution (narrative checklist — not a compliance attestation).**
+
+- [x] **~10 ms in-process degrade budget** (`tokio::time::timeout`, sliding circuit semantics in `ag-gateway`; K8s `/health` and `/ready` remain **second-scale** probes).
+- [x] **PII redaction path** — **ONNX NER primary** in-stack; regex fast lane; **Cursor `preToolUse`** heuristic secret/PII gate layered for agent workflows.
+- [x] **Rust gateway on 8080** in Docker/Kubernetes samples; **volumes** `/data/tantivy_index` (writable index) and `/app/models` (read-only ONNX).
 
 **Additional operational captures.** Drop secondary screenshots under `./docs/screenshots/` (create the directory in your fork) and link them here for board-ready narrative continuity.
 
