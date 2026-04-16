@@ -1,91 +1,147 @@
-# Project Antigravity / Aegis V2.5 — Technical & Financial Sovereign Manifesto
+# Project Antigravity: Aegis V2.5 Sovereign Core & FinOps Gateway
 
-**技術與財務主權宣言**：以可審計的零信任邊界、FinOps 可量化指標與 **Rust / Axum production gateway**（`ag-gateway`）將 **agentic commerce** 的資料外洩與推理成本轉為可治理的優勢。
+This repository is a **production-grade sovereign control plane** for agentic commerce: a **16-crate Rust workspace** and **`ag-gateway` (Axum)** that enforce **zero-trust interception**, **quantified FinOps**, and **auditable degradation** before payloads or budget cross the LLM boundary. It is written to be defensible in front of engineering leadership, security review, and capital allocation—not as a toy demo.
 
-![Cyber-FinOps Command Center — Aegis Dashboard](./aegis-dashboard.png)
+![Cyber-FinOps Command Center — Day-1 execution surface](./aegis-dashboard.png)
 
-*置頂視覺：Cyber-FinOps Command Center（`./aegis-dashboard.png`）；可替換為生產環境擷圖。*
+**Figure 1.** Cyber-FinOps command center (`./aegis-dashboard.png`). Replace with your production capture when you harden the edge.
+
+**Additional operational captures.** Drop secondary screenshots under `./docs/screenshots/` (create the directory in your fork) and link them here for board-ready narrative continuity.
 
 ---
 
 ## Executive thesis
 
-- **Zero-trust boundary**：PII 與策略在進入第三方模型**之前**攔截；邊界可寫進 SOC2 / 企業安全敘事，而非事後 log pipeline。
-- **可審計降級**：雲端路徑、配額或依賴失敗時，以**可預測的 graceful degradation** 與進程內 **~10ms 級**逾時／斷路語意收斂風險（與 K8s 探針分工見下節「技術護城河」）。
-- **FinOps 可量化**：Token / cache posture 與 **TCO** 以 [`ag-finops-model`](crates/ag-finops-model/src/lib.rs) 的 `FinOpsAssumptions`（`cache_hit_rate`、`baseline_hourly_gpu_usd`、`rust_speedup_factor`）對齊；儀表板與敘事為 **portfolio／模型假設**，非對外財務承諾。
+- **Zero-trust boundary.** PII and policy are enforced **upstream of third-party inference**. The control narrative belongs in a SOC2-style packet, not in a post-hoc logging pipeline.
+- **Auditable degradation.** Cloud paths, quotas, and local model dependencies fail **predictably**: in-process **`tokio::time::timeout`**, sliding failure counters, and circuit-open semantics bound hot-path risk. **Kubernetes probes** (`/health`, `/ready`) operate on **second-scale** budgets—they are **not** the same contract as the **~10 ms** in-process degrade budget.
+- **FinOps you can trace.** Token and cache posture roll up to TCO assumptions in [`ag-finops-model`](crates/ag-finops-model/src/lib.rs) (`FinOpsAssumptions`: `cache_hit_rate`, `baseline_hourly_gpu_usd`, `rust_speedup_factor`). Dashboard figures are **portfolio and model narratives**, not audited financial statements.
 
 ---
 
-## Financial arbitrage（財務線／敘事 KPI）
+## Commercial impact (whitepaper §2.1 — narrative, not legal advice)
 
-以下數字為**說明用假設與 portfolio 敘事**，**非**法律、移民、稅務或投資建議；實際結果依合約、叢集與法規而異。
+**Disclaimer:** The figures below are **illustrative portfolio framing** for an **F-1 Change of Status (COS) applicant** comparing mobility paths. They are **not** immigration, tax, or legal advice. Actual outcomes depend on counsel, employer, and jurisdiction.
 
-| KPI | 敘事摘要 |
-|-----|----------|
-| **~USD 100,000** | **H-1B tariff exemption** 量級之 **portfolio 敘事**（與 F-1 COS 等路徑對照之 TCO 框架；非個案法律結論）。常數見 [`VISA_TARIFF_EXEMPTION_USD`](crates/ag-finops-model/src/lib.rs)。 |
-| **> USD 90,000 / yr** | **年度算力節省**敘事：預設 **80%** token／cache hit、**Rust** 路徑 speedup 與 baseline GPU 時薪假設；計算見 `compute_annual_compute_arbitrage_usd`（含程式內敘事下限，**非**保證）。 |
+| KPI | Narrative |
+|-----|-----------|
+| **USD 100,000** | **H-1B tariff exemption** framing—held in code as [`VISA_TARIFF_EXEMPTION_USD`](crates/ag-finops-model/src/lib.rs). |
+| **> USD 90,000 / year** | **Projected annual compute savings** under default assumptions: **80%** token/cache posture, Rust speedup, and baseline GPU hourly—see `compute_annual_compute_arbitrage_usd` (includes a **narrative floor** in code; **not** a guarantee). |
 
 ### TCO vs. Token Cache Matrix
 
-口徑與 **`FinOpsAssumptions::default`** 一致：`cache_hit_rate = 0.80`、`baseline_hourly_gpu_usd = 3.50`、`rust_speedup_factor = 2.5`。  
-**Effective $/1M tokens** 欄為**相對於 L0 的示意倍率**（非供應商牌價）；**Annual TCO delta** 對 L2 列僅摘要指向程式模型（含 `>90k` 下限），實務須以你的 GPU／API 帳單校準。
+Aligned with **`FinOpsAssumptions::default`**: `cache_hit_rate = 0.80`, `baseline_hourly_gpu_usd = 3.50`, `rust_speedup_factor = 2.5`. **Effective $/1M tokens** are **relative illustrative multiples** vs. tier L0, not vendor list prices. Reconcile **annual** figures against your real GPU and API invoices.
 
-| Tier | Cache / Token posture | Effective $/1M tokens (illustrative) | Annual TCO delta vs L0 baseline | Control notes |
-|------|------------------------|--------------------------------------|-----------------------------------|---------------|
-| **L0** | 無 cache；全量走 metered GPU / API | **1.00×**（參考） | **$0**（參考） | 最高可變成本；無 edge semantic short-circuit。 |
-| **L1** | ~40% cache hit；無 Rust speedup | **~0.60×** | **~−$12k**（示意；`3.50 × 8760 × 0.4` 量級） | 重複查詢短路；仍為直譯／單一路徑假設。 |
-| **L2（預設）** | **80%** cache hit + **Rust 2.5×** | **~0.08×** | **> $90k/yr**（[`ag-finops-model`](crates/ag-finops-model/src/lib.rs) 模型與 `.max(90_000)` 敘事） | 與 `demo_snapshot`、gateway FinOps 端點假設對齊；**請以審計帳務覆核**。 |
-
----
-
-## Technical moat（技術護城河）
-
-- **16-crate workspace**：單一 [`Cargo.toml`](Cargo.toml) 管理 **`ag-gateway`**、[`antigravity_core`](crates/antigravity_core)、[`ag-search-tantivy`](crates/ag-search-tantivy)、[`ag-pii-onnx`](crates/ag-pii-onnx)、[`ag-finops-model`](crates/ag-finops-model) 等模組。
-- **~10ms graceful degradation**：進程內以 `tokio::time::timeout`、滑動失敗與斷路行為約束**熱路徑**延遲預算。**K8s** 的 **`/health`（liveness）** 與 **`/ready`（readiness）** 使用**秒級** `timeoutSeconds`／`periodSeconds`——**探針語意 ≠ 10ms SLA**；後者屬應用內依賴保護，前者屬編排層存活與流量就緒。
-- **&lt;2ms PII masking（設計目標）**：PyBuffer → `Arc<[u8]>` 零拷貝、regex 快路徑與可選 ONNX NER（`antigravity_core`、`ag-pii-onnx`）。**Browser** 經 **Next.js** 對 [`gateway`](gateway/main.py)（FastAPI）或對 **`ag-gateway`（Rust）** 的 API 契約應在部署時**二選一或改埠**，避免雙服務預設同埠衝突。
-- **Tantivy &lt;10ms 搜尋**：本機索引與查詢路徑見 [`ag-search-tantivy`](crates/ag-search-tantivy)；gateway 透過 `AG_TANTIVY_INDEX_DIR` 掛載可寫索引目錄。
+| Tier | Cache / token posture | Effective $/1M tokens (illustrative) | Annual TCO delta vs L0 | Control notes |
+|------|-------------------------|--------------------------------------|-------------------------|---------------|
+| **L0** | No cache; full metered GPU/API | **1.00×** (reference) | **USD 0** (reference) | Highest variable cost. |
+| **L1** | ~40% cache hit; no Rust speedup | **~0.60×** | **~−USD 12k** (order-of-magnitude; `3.50 × 8760 × 0.4` scale) | Repeat-query short circuit. |
+| **L2 (default)** | **80%** cache + **Rust 2.5×** | **~0.08×** | **> USD 90k/yr** ([`ag-finops-model`](crates/ag-finops-model/src/lib.rs) model + `.max(90_000)` narrative) | Matches `demo_snapshot` / gateway FinOps stubs—**verify with finance**. |
 
 ---
 
-## Architecture snapshot
+## Technical moat
+
+- **16-crate workspace** — Single [`Cargo.toml`](Cargo.toml): `ag-gateway`, [`antigravity_core`](crates/antigravity_core) (PyO3), [`ag-zero-copy`](crates/ag-zero-copy), [`ag-pii-regex`](crates/ag-pii-regex), [`ag-pii-onnx`](crates/ag-pii-onnx), [`ag-redact`](crates/ag-redact), [`ag-finops-model`](crates/ag-finops-model), [`ag-search-tantivy`](crates/ag-search-tantivy), [`ag-resilience`](crates/ag-resilience), and supporting types/config/HTTP/observability crates. **There is no separate `ag-auth` crate**—policy and trust boundaries are expressed through **`ag-config`**, HTTP edge contracts, and redaction paths.
+- **~10 ms graceful degradation** — [`ag-resilience`](crates/ag-resilience/src/lib.rs) exposes **`tower::timeout::TimeoutLayer`** and re-exports **`tower_resilience_circuitbreaker::CircuitBreakerLayer`**. [`ag-gateway`](crates/ag-gateway/src/main.rs) adds **application-level** sliding failure counts and **`tokio::time::timeout`** around the **ONNX NER** hot path. **Compose** these layers in the gateway stack; do not pretend a single macro solves production SLOs.
+- **Zero-trust PII (primary path: local NER, not regex theatre)** — **Production narrative:** **`tokio::time::timeout`** + **local ONNX NER** via [`ag-pii-onnx`](crates/ag-pii-onnx) and mounted models. [`ag-pii-regex`](crates/ag-pii-regex) remains a **fast deterministic lane**, not the compliance story you lead with.
+- **Sub-10 ms search** — [`ag-search-tantivy`](crates/ag-search-tantivy) backs indexed retrieval; gateway uses `AG_TANTIVY_INDEX_DIR`.
+
+---
+
+## Architecture — C4-style system view (Mermaid)
+
+**Observability honesty:** [`ag-observability`](crates/ag-observability/src/lib.rs) initializes **`tracing`**. **Prometheus/Grafana** are shown as **deployment-side** scrape and dashboard wiring (e.g. OpenTelemetry export or a future `/metrics` surface)—not as a claim that this repo ships a Prometheus exporter today.
+
+```mermaid
+flowchart TB
+  subgraph client_edge["Client and edge"]
+    Browser["Browser"]
+    Next["Next.js Cyber-FinOps UI"]
+  end
+
+  subgraph inference_layer["Inference layer — 16-crate workspace"]
+    GW["ag-gateway Axum"]
+    AC["antigravity_core PyO3"]
+    ZC["ag-zero-copy"]
+    PRX["ag-pii-regex fast lane"]
+    PON["ag-pii-onnx ONNX NER"]
+    RD["ag-redact"]
+    FM["ag-finops-model"]
+    TV["ag-search-tantivy"]
+    CFG["ag-config policy boundary"]
+    RES["ag-resilience Timeout plus CircuitBreaker layers"]
+  end
+
+  subgraph data_plane["Data plane — zero-copy FFI"]
+    PyBuf["Python PyBuffer"]
+    Gil["GIL boundary"]
+    ArcU8["Arc of u8 stable buffer"]
+    Handler["Axum handler hot path"]
+  end
+
+  subgraph zero_trust["Zero-trust redaction primary path"]
+    TO["tokio time timeout"]
+    NER["Local ONNX NER model mount"]
+    Mask["Masked payload before LLM boundary"]
+  end
+
+  subgraph finops_engine["FinOps and resilience"]
+    SL["Sliding failure window"]
+    CB["Circuit open semantics"]
+    D10["10 ms degrade budget in-process"]
+  end
+
+  subgraph observability["Observability plane"]
+    TR["tracing subscriber ag-observability"]
+    Prom["Prometheus scrape deployment hook"]
+    Graf["Grafana dashboards deployment hook"]
+  end
+
+  Browser --> Next
+  Next --> GW
+  GW --> TV
+  GW --> FM
+  GW --> RES
+  RES --> D10
+  GW --> SL
+  SL --> CB
+  AC --> PyBuf
+  PyBuf --> Gil
+  Gil --> ArcU8
+  ArcU8 --> Handler
+  Handler --> TO
+  TO --> PON
+  PON --> NER
+  PRX -. optional fast lane .-> RD
+  PON --> RD
+  RD --> Mask
+  CFG -. trust config .-> GW
+  GW --> TR
+  TR -. OTLP or scrape .-> Prom
+  Prom -. dashboards .-> Graf
+```
+
+**C4 context (boundary narrative).**
 
 ```mermaid
 flowchart LR
-  subgraph Client
-    B[Browser]
-  end
-  subgraph Edge
-    N[Next.js Cyber-FinOps UI]
-  end
-  subgraph Gateway
-    R[ag-gateway Axum :8080]
-    P[FastAPI gateway optional dev]
-  end
-  subgraph DataPlane
-    T[Tantivy index]
-    M[Optional ONNX / models]
-  end
-  B --> N
-  N --> R
-  N -. dev / legacy .-> P
-  R --> T
-  R --> M
+  Op["Operator"]
+  Aegis["Aegis V2.5 ag-gateway"]
+  LLM["External LLM APIs"]
+  Op -->|"policy and FinOps UI"| Aegis
+  Aegis -->|"redacted allowed traffic"| LLM
+  LLM -->|"metered responses"| Aegis
 ```
-
-- **Production（Apollo）**：Browser → Next.js（靜態／SSR）→ **`ag-gateway:8080`** → Tantivy / ONNX。
-- **Local full-stack**：可並行 Next.js；若同機同時跑 **Rust** 與 **Python** gateway，請將其一改埠（見 Quick start）。
 
 ---
 
-## Production deployment（Apollo Standard）
+## Production deployment — Apollo standard
 
-**映像**以根目錄 [`Dockerfile`](Dockerfile) 建置 **`ag-gateway`**（多階段；**legacy Python** 映像見 [`Dockerfile.python`](Dockerfile.python)）。
+Root [`Dockerfile`](Dockerfile) builds **`ag-gateway`**. Legacy Python image: [`Dockerfile.python`](Dockerfile.python).
 
 ```bash
-# 建置（本機 tag；CI 請改為 registry + immutable digest/tag）
 docker build -t ag-gateway:local .
 
-# 執行：8080、可寫 Tantivy、唯讀模型掛載
 docker run --rm -p 8080:8080 \
   -e AG_GATEWAY_LISTEN=0.0.0.0:8080 \
   -e AG_TANTIVY_INDEX_DIR=/data/tantivy_index \
@@ -94,35 +150,30 @@ docker run --rm -p 8080:8080 \
   ag-gateway:local
 ```
 
-**Kubernetes**（RollingUpdate：`maxUnavailable: 0`；liveness `/health`、readiness `/ready`）：
-
 ```bash
 kubectl apply -f deploy/k8s/deployment.yaml -f deploy/k8s/service.yaml
 ```
 
-**營運備註**：
-
-- 生產叢集請將 `deployment.yaml` 的 **`image:`** 換成 registry **immutable tag**，並將 **`imagePullPolicy`** 設為 **`Always`**（或等同策略）。
-- 目前 manifest 中 Tantivy／模型 volume 範例可能為 **`emptyDir`**；**ONNX / 持久索引**請改為 **PVC** 並與備份策略對齊。
+**Operations:** Pin **`image:`** to an **immutable registry tag** in production; set **`imagePullPolicy: Always`** (or equivalent). Replace **`emptyDir`** volumes with **PVCs** for Tantivy and ONNX where durability matters.
 
 ---
 
 ## Developer quick start
 
-### Command center（Next.js）
+### Cyber-FinOps UI (Next.js)
 
 ```bash
 cd frontend
-cp .env.local.example .env.local   # 設定 NEXT_PUBLIC_AEGIS_API_URL 指向你的 gateway
+cp .env.local.example .env.local
 npm install
 npm run dev
 ```
 
-開啟 **http://localhost:3000**。變更 `NEXT_PUBLIC_*` 後需重啟 dev server。
+Open **http://localhost:3000**. Restart after changing `NEXT_PUBLIC_*` variables.
 
-### Python Bifrost（FastAPI + PyO3 `antigravity_core`）
+### Python Bifrost (FastAPI + PyO3)
 
-與 **Rust `ag-gateway` 預設埠均為 8080**。若同機並行，請將 FastAPI 改為 **8000**（範例）或將 `AG_GATEWAY_LISTEN` 改為 **8081**。
+**Port collision warning:** Both **Rust `ag-gateway`** and the sample **uvicorn** command default to **8080**. Run FastAPI on **8000** or move Rust to **8081** via `AG_GATEWAY_LISTEN`.
 
 ```bash
 python3 -m venv venv
@@ -130,32 +181,38 @@ source venv/bin/activate
 pip install -r requirements.txt
 pip install -r gateway/requirements.txt
 maturin develop --manifest-path crates/antigravity_core/Cargo.toml
-
-# 範例：與 ag-gateway 錯開埠
 uvicorn gateway.main:app --host 0.0.0.0 --port 8000 --reload --reload-dir gateway
 ```
 
-- **Python**：`GET /healthz`、`POST /v1/analytics/scan`、`GET /v1/analytics/finops`（埠依你設定）。
+- Python: `GET /healthz`, `POST /v1/analytics/scan`, `GET /v1/analytics/finops`.
 
-### Rust `ag-gateway`（與 Docker／K8s 一致）
+### Rust `ag-gateway` (matches Docker/Kubernetes)
 
 ```bash
-cargo build --release -p ag-gateway
-# 預設聽 0.0.0.0:8080（見 AG_GATEWAY_LISTEN）
-./target/release/ag-gateway
+cargo run --release -p ag-gateway
+# or: ./target/release/ag-gateway — listens on 0.0.0.0:8080 by default
 ```
 
-- **Rust**：`GET /health`、`GET /ready`（**8080** 預設）。
+- Rust: `GET /health`, `GET /ready` on **8080**.
 
 ---
 
-## Governance & compliance
+## Governance — pre-tool security hooks (whitepaper §3.1)
 
-- **Cursor hooks / SOC2 敘事**：見根目錄 [`.cursorrules`](.cursorrules) **§4 Hook Integrity**——**fail-closed**、明確 **`python3`** 直譯器、稽核與 **`logs/agent-hook-audit.jsonl`**（該 log 路徑已列於 [`.gitignore`](.gitignore)，不應入庫）。
-- **團隊可重現**：若 repo 已納入 [`.cursor/hooks.json`](.cursor/hooks.json) 與 [`.cursor/hooks/`](.cursor/hooks/) 腳本，請以相同相對路徑啟用；**勿**將 `venv`、`node_modules`、`.env` 或本機絕對路徑提交。
+Cursor hook contract lives in [`.cursor/hooks.json`](.cursor/hooks.json). **Fail-closed** is non-negotiable for tool and shell gates.
+
+| Hook | Command | Behavior |
+|------|---------|----------|
+| **`preToolUse`** | `python3 .cursor/hooks/pre_tool_gate.py` | **`failClosed: true`** — blocks destructive patterns in tool payloads and **heuristic secret/PII leakage** in proposed file content (see script). This is your **pre-save / pre-write gate** in agent workflows: file writes surface through tool calls, not through a separate editor save event. |
+| **`postToolUse`** | `python3 .cursor/hooks/post_tool_audit.py` | Appends structured audit lines to **`logs/agent-hook-audit.jsonl`** (gitignored). |
+| **`beforeShellExecution`** | `python3 .cursor/hooks/before_shell_gate.py` | **`failClosed: true`** — bash and shell invocation policy. |
+
+**Layering:** Hook scanning is **client-side heuristic DLP**, not a substitute for **`ag-pii-onnx`** on the gateway hot path. Use both.
+
+**Do not commit:** `venv/`, `node_modules/`, `.env*`, or local absolute paths. See [`.gitignore`](.gitignore) and [`.cursorrules`](.cursorrules) §4 Hook Integrity.
 
 ---
 
 ## Disclaimer
 
-本 README 中的 **KPI、矩陣與 FinOps 數字**均為 **portfolio／模型假設與技術敘事**；**不構成**法律、移民、稅務、投資或財務保證。部署與合規決策應由你的法務、財務與資安團隊依實際環境審核。
+All **KPIs, matrices, and FinOps numbers** in this document are **model and portfolio narratives**. They are **not** legal, immigration, tax, investment, or financial guarantees. Engage counsel and finance for decisions that bind the company.
