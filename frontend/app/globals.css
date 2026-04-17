@@ -17,6 +17,9 @@
   --neon-glow:     rgba(0, 240, 255, 0.15);
   --neon-glow-md:  rgba(0, 240, 255, 0.30);
   --neon-glow-lg:  rgba(0, 240, 255, 0.50);
+  --neon-purple:   #c084fc;
+  --neon-purple-dim: rgba(168, 85, 247, 0.35);
+  --panel-glass:   rgba(6, 12, 22, 0.72);
   --text-primary:  #c8eef5;
   --text-secondary:#4a8a9a;
   --text-muted:    #2a4a55;
@@ -119,6 +122,32 @@ body::after {
   box-shadow:
     0 0 8px rgba(0, 240, 255, 0.2),
     inset 0 0 8px rgba(0, 240, 255, 0.08);
+}
+
+/* Premium glass panels — high-contrast command center */
+.sv-glass-panel {
+  background: var(--panel-glass);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(0, 240, 255, 0.14);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4) inset,
+    0 4px 24px rgba(0, 0, 0, 0.35),
+    0 0 40px rgba(0, 240, 255, 0.06);
+}
+
+.sv-glow-purple {
+  box-shadow:
+    0 0 20px var(--neon-purple-dim),
+    0 0 48px rgba(168, 85, 247, 0.12);
+}
+
+.sv-sla-strip {
+  background: linear-gradient(90deg, rgba(0, 24, 40, 0.92) 0%, rgba(24, 12, 40, 0.88) 50%, rgba(0, 16, 28, 0.92) 100%);
+  border-bottom: 1px solid rgba(0, 240, 255, 0.12);
+  border-top: 1px solid rgba(192, 132, 252, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 /* ── Panel Base ───────────────────────────────────────────────────────────── */

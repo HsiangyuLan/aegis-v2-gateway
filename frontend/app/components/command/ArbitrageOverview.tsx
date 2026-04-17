@@ -42,12 +42,13 @@ export function ArbitrageOverview({ apiBase }: ArbitrageOverviewProps) {
 
   return (
     <div
+      className="sv-glass-panel sv-glow-purple"
       style={{
         flexShrink: 0,
-        padding: "12px 18px",
-        borderBottom: "1px solid rgba(0,240,255,0.12)",
+        padding: "14px 20px",
+        borderBottom: "1px solid rgba(0,240,255,0.14)",
         background:
-          "linear-gradient(90deg, rgba(0,24,40,0.95) 0%, rgba(0,8,16,0.98) 100%)",
+          "linear-gradient(105deg, rgba(0,24,40,0.88) 0%, rgba(24,8,40,0.55) 45%, rgba(0,8,16,0.92) 100%)",
       }}
     >
       <div
@@ -94,9 +95,10 @@ export function ArbitrageOverview({ apiBase }: ArbitrageOverviewProps) {
       >
         <div
           style={{
-            border: "1px solid rgba(0,240,255,0.2)",
-            padding: "12px 14px",
-            background: "rgba(0,12,22,0.85)",
+            border: "1px solid rgba(0,240,255,0.28)",
+            padding: "14px 16px",
+            background: "rgba(0,12,22,0.75)",
+            boxShadow: "0 0 24px rgba(0, 240, 255, 0.06), inset 0 1px 0 rgba(255,255,255,0.04)",
           }}
         >
           <div
@@ -107,7 +109,7 @@ export function ArbitrageOverview({ apiBase }: ArbitrageOverviewProps) {
               marginBottom: 6,
             }}
           >
-            H-1B TARIFF EXEMPTION (NARRATIVE)
+            $100K H-1B TARIFF EXEMPTION (F-1 COS NARRATIVE)
           </div>
           <div
             style={{
@@ -135,9 +137,10 @@ export function ArbitrageOverview({ apiBase }: ArbitrageOverviewProps) {
 
         <div
           style={{
-            border: "1px solid rgba(0,240,255,0.2)",
-            padding: "12px 14px",
-            background: "rgba(0,12,22,0.85)",
+            border: "1px solid rgba(192,132,252,0.35)",
+            padding: "14px 16px",
+            background: "rgba(12,8,22,0.75)",
+            boxShadow: "0 0 28px rgba(168, 85, 247, 0.12), inset 0 1px 0 rgba(255,255,255,0.04)",
           }}
         >
           <div
@@ -148,7 +151,7 @@ export function ArbitrageOverview({ apiBase }: ArbitrageOverviewProps) {
               marginBottom: 6,
             }}
           >
-            ANNUAL COMPUTE ARBITRAGE
+            &gt;$90K/YR ANNUAL COMPUTE ARBITRAGE
           </div>
           <div
             style={{

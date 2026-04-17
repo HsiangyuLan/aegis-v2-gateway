@@ -431,6 +431,42 @@ export default function FinOpsDashboard() {
 
   return (
     <div>
+      <div
+        style={{
+          padding: "12px 14px",
+          marginBottom: "24px",
+          border: "1px solid rgba(0,0,0,0.12)",
+          background: "rgba(0,0,0,0.02)",
+        }}
+      >
+        <span
+          style={{
+            fontFamily: FONT_BODY,
+            fontWeight: 700,
+            fontSize: "9px",
+            letterSpacing: "0.14em",
+            color: "#000000",
+            opacity: 0.55,
+            display: "block",
+            marginBottom: 4,
+          }}
+        >
+          AEGIS V2.5 COMMAND CENTER · SLA
+        </span>
+        <span
+          style={{
+            fontFamily: FONT_BODY,
+            fontSize: "10px",
+            letterSpacing: "0.06em",
+            color: "#000000",
+            opacity: 0.7,
+            lineHeight: 1.5,
+          }}
+        >
+          ~10 ms in-process graceful degradation (tokio timeout + circuit semantics). Kubernetes
+          /health and /ready probes use second-scale budgets — not the same as the hot-path SLA.
+        </span>
+      </div>
       {/* Section eyebrow */}
       <div
         className="incision-b"
@@ -464,7 +500,7 @@ export default function FinOpsDashboard() {
             textTransform: "uppercase",
           }}
         >
-          AEGIS V2 — REALTIME
+          AEGIS V2.5 — REALTIME
         </span>
       </div>
 

@@ -52,26 +52,33 @@ const NAV_ITEMS = [
 ] as const;
 
 const ASSETS = [
-  { pair: "BTC/USD",  price: "$64,102.11", spread: "0.0012%", trend: "▲", up: true  as boolean | null },
-  { pair: "ETH/USD",  price: "$3,421.90",  spread: "0.0024%", trend: "→", up: null  as boolean | null },
-  { pair: "SOL/USD",  price: "$145.12",    spread: "0.0041%", trend: "▼", up: false as boolean | null },
-  { pair: "LINK/USD", price: "$18.94",     spread: "0.0008%", trend: "▲", up: true  as boolean | null },
+  { pair: "LOCAL_EDGE",   price: "1,100 rps", spread: "cache-adjacent routing", trend: "▲", up: true  as boolean | null },
+  { pair: "CLOUD_GEMINI", price: "237 rps",   spread: "metered fallback",      trend: "→", up: null  as boolean | null },
+  { pair: "TOKEN_CACHE",  price: "80% hit",   spread: "FinOps model default",  trend: "▲", up: true  as boolean | null },
+  { pair: "RUST_PATH",    price: "2.5×",      spread: "speedup vs baseline",     trend: "▲", up: true  as boolean | null },
 ];
 
-const MOCK_TXS = [
-  { time: "04:12:01", action: "BUY BTC",  value: "0.0412 BTC", usd: null,         ok: true  },
-  { time: "04:11:58", action: "STAKE SOL", value: "104.00 SOL", usd: null,         ok: true  },
-  { time: "04:11:58", action: "WITHDRAW",  value: null,          usd: "-$2,000.00", ok: false },
+const MOCK_TXS: {
+  time: string;
+  action: string;
+  value: string | null;
+  usd: string | null;
+  ok: boolean;
+}[] = [
+  { time: "04:12:01", action: "INFER /v1/route",    value: "local_edge",  usd: null, ok: true },
+  { time: "04:11:58", action: "ONNX NER SCAN",      value: "12.1 ms",     usd: null, ok: true },
+  { time: "04:11:55", action: "CACHE HIT semantic", value: "prefix 0.82", usd: null, ok: true },
+  { time: "04:11:52", action: "CIRCUIT HALF-OPEN",  value: "retry OK",    usd: "-$2.00 est.", ok: false },
 ];
 
 const TICKER_ITEMS = [
-  "■ SYS_EVENT: BLOCK_19283746_VERIFIED",
-  "■ ARB_EXEC: FLASH_LOAN_ACTIVE_3.2M",
-  "■ NODE_OFFLINE: SHARD_004_PING_FAIL",
-  "■ LIQUIDITY_DEPTH: +0.42%",
-  "■ ENTROPY_SCORE: 0.312 → LOCAL_EDGE",
-  "■ CIRCUIT_BREAKER: CLOSED [3/3]",
-  "■ PII_SCAN: 2 MATCHES DETECTED",
+  "■ GATEWAY: ag-gateway Axum :8080",
+  "■ DEGRADE: ~10MS IN-PROCESS BUDGET ACTIVE",
+  "■ K8S: /health /ready PROBES ARE SECOND-SCALE NOT 10MS",
+  "■ PII: ONNX NER PRIMARY · REGEX FAST LANE",
+  "■ FINOPS: VISA KPI + COMPUTE ARB PANEL LIVE",
+  "■ CIRCUIT_BREAKER: CLOSED",
+  "■ TANTIVY: INDEX WARM UNDER AG_TANTIVY_INDEX_DIR",
 ];
 
 // SSR-safe static bar heights (no Math.random in render)
@@ -92,7 +99,7 @@ interface WireframeSphereProps {
 
 function WireframeSphere({ mouseRef }: WireframeSphereProps) {
   const groupRef = useRef<THREE.Group>(null!);
-  const geo = new THREE.SphereGeometry(1.75, 28, 28);
+  const geo = new THREE.IcosahedronGeometry(1.75, 1);
 
   useFrame((_state, delta) => {
     if (!groupRef.current) return;
@@ -116,24 +123,23 @@ function WireframeSphere({ mouseRef }: WireframeSphereProps) {
         <meshBasicMaterial
           color="#001820"
           transparent
-          opacity={0.45}
+          opacity={0.5}
           side={THREE.BackSide}
         />
       </mesh>
 
-      {/* Sparse wireframe grid */}
+      {/* Wireframe facets */}
       <mesh geometry={geo}>
         <meshBasicMaterial
           color="#00F0FF"
           wireframe
           transparent
-          opacity={0.18}
+          opacity={0.22}
         />
       </mesh>
 
-      {/* High-contrast edge lines via Edges helper */}
-      <Edges geometry={geo} threshold={10}>
-        <lineBasicMaterial color="#00F0FF" transparent opacity={0.55} />
+      <Edges geometry={geo} threshold={15}>
+        <lineBasicMaterial color="#00F0FF" transparent opacity={0.65} />
       </Edges>
 
       {/* Equatorial ring */}
@@ -196,7 +202,7 @@ function TopBar() {
             letterSpacing: "0.15em",
           }}
         >
-          AEGIS V2.5
+          AEGIS V2.5 COMMAND CENTER
         </span>
         <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <span className="status-dot" />
@@ -205,10 +211,10 @@ function TopBar() {
           </span>
         </div>
         <span style={{ color: "#4a8a9a", fontSize: 10, letterSpacing: "0.12em" }}>
-          LATENCY: 14MS
+          SLA IN-PROC: ~10MS DEGRADE
         </span>
         <span style={{ color: "#4a8a9a", fontSize: 10, letterSpacing: "0.12em" }}>
-          UPTIME: 99.9%
+          K8S PROBES: SEC-SCALE
         </span>
       </div>
 
@@ -272,7 +278,7 @@ function LeftSidebar({ activeNav, setActiveNav }: LeftSidebarProps) {
             letterSpacing: "0.12em",
           }}
         >
-          SOVEREIGN
+          AEGIS V2.5
         </div>
         <div
           style={{
@@ -282,7 +288,7 @@ function LeftSidebar({ activeNav, setActiveNav }: LeftSidebarProps) {
             marginTop: 2,
           }}
         >
-          V2.5 INSTRUMENT
+          CYBER-FINOPS UI
         </div>
       </div>
 
@@ -528,7 +534,7 @@ function AssetCard({ pair, price, spread, trend, up }: AssetCardProps) {
           letterSpacing: "0.12em",
         }}
       >
-        SPREAD: {spread}
+        POSTURE: {spread}
       </div>
 
       {/* Spread indicator bar */}
@@ -566,7 +572,7 @@ function TransactionFeed() {
       style={{ height: "100%", display: "flex", flexDirection: "column" }}
     >
       <span className="sv-label" style={{ marginBottom: 12 }}>
-        TRANSACTION_FEED
+        REQUEST_LOG
       </span>
 
       <div
@@ -632,7 +638,7 @@ function TransactionFeed() {
                   letterSpacing: "0.15em",
                 }}
               >
-                SUCCESS
+                {tx.ok ? "OK" : "DEGRADED"}
               </div>
             </div>
           </motion.div>
@@ -1011,6 +1017,48 @@ function StatusTicker() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// SLA / degradation monitoring strip (narrative; K8s probes are second-scale)
+// ─────────────────────────────────────────────────────────────────────────────
+
+function SlaMonitoringStrip() {
+  return (
+    <div
+      className="sv-sla-strip"
+      style={{
+        flexShrink: 0,
+        padding: "8px 18px",
+        display: "flex",
+        alignItems: "center",
+        gap: 14,
+        flexWrap: "wrap",
+      }}
+    >
+      <span
+        style={{
+          width: 6,
+          height: 6,
+          background: "#00ff88",
+          boxShadow: "0 0 8px #00ff88",
+          flexShrink: 0,
+        }}
+      />
+      <span
+        className="sv-label"
+        style={{ color: "#00F0FF", letterSpacing: "0.2em" }}
+      >
+        SLA MONITORING
+      </span>
+      <span style={{ color: "#4a8a9a", fontSize: 10, letterSpacing: "0.12em" }}>
+        ~10MS GRACEFUL DEGRADATION · TOKIO TIMEOUT + SLIDING CIRCUIT IN ag-gateway
+      </span>
+      <span style={{ color: "#2a6a7a", fontSize: 9, letterSpacing: "0.1em" }}>
+        K8s liveness/readiness: /health /ready — probe timeouts are seconds, not milliseconds.
+      </span>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Main Page
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -1068,6 +1116,7 @@ export default function SovereignPage() {
           >
             {/* Center: globe + capital */}
             <div
+              className="sv-glass-panel"
               style={{
                 flex: 1,
                 position: "relative",
@@ -1075,7 +1124,7 @@ export default function SovereignPage() {
                 borderRight: "1px solid rgba(0,240,255,0.08)",
                 overflow: "hidden",
                 background:
-                  "radial-gradient(ellipse at center, #020d18 0%, #050505 70%)",
+                  "radial-gradient(ellipse at center, rgba(2,13,24,0.92) 0%, rgba(5,5,8,0.85) 70%)",
               }}
             >
               {/* Section label */}
@@ -1098,7 +1147,7 @@ export default function SovereignPage() {
                     boxShadow: "0 0 6px #00F0FF",
                   }}
                 />
-                <span className="sv-label">TOTAL_CAPITAL_ALLOCATION</span>
+                <span className="sv-label">INGESTION_CORE · FINOPS</span>
               </div>
 
               {/* R3F Canvas */}
@@ -1141,14 +1190,27 @@ export default function SovereignPage() {
                 <div
                   className="neon-text-lg"
                   style={{
-                    fontSize: "clamp(36px, 5vw, 62px)",
+                    fontSize: "clamp(22px, 4vw, 40px)",
                     fontWeight: 700,
                     letterSpacing: "-0.02em",
-                    lineHeight: 1,
+                    lineHeight: 1.15,
                     animation: "neon-pulse 3s ease-in-out infinite",
+                    textAlign: "center",
+                    maxWidth: 520,
                   }}
                 >
-                  $14,892.44
+                  &gt;$90K/YR COMPUTE ARB · $100K VISA NARRATIVE
+                </div>
+                <div
+                  style={{
+                    marginTop: 10,
+                    fontSize: 10,
+                    letterSpacing: "0.14em",
+                    color: "#4a8a9a",
+                    textAlign: "center",
+                  }}
+                >
+                  PORTFOLIO MODEL — NOT LEGAL OR TAX ADVICE
                 </div>
               </div>
 
@@ -1166,9 +1228,9 @@ export default function SovereignPage() {
                 }}
               >
                 {[
-                  { label: "DELTA_24H",       val: "+12.42%", color: "#00ff88" },
-                  { label: "VOLATILITY_INDEX", val: "0.14",   color: "#c8eef5" },
-                  { label: "NODES_ONLINE",     val: "1,402",  color: "#c8eef5" },
+                  { label: "CACHE_HIT_MODEL", val: "80%",     color: "#00ff88" },
+                  { label: "P99_LATENCY_DEMO", val: "12.4 MS", color: "#c8eef5" },
+                  { label: "CIRCUIT_STATE",    val: "CLOSED",  color: "#c8eef5" },
                 ].map(s => (
                   <div key={s.label}>
                     <div
@@ -1194,6 +1256,7 @@ export default function SovereignPage() {
 
             {/* Right: system integrity */}
             <div
+              className="sv-glass-panel sv-glow-purple"
               style={{
                 width: 280,
                 flexShrink: 0,
@@ -1205,6 +1268,7 @@ export default function SovereignPage() {
             </div>
           </div>
 
+          <SlaMonitoringStrip />
           <ArbitrageOverview apiBase={API} />
 
           {/* ── Asset bar ── */}

@@ -2,16 +2,12 @@
 
 This repository is a **production-grade sovereign control plane** for agentic commerce: a **16-crate Rust workspace** and **`ag-gateway` (Axum)** that enforce **zero-trust interception**, **quantified FinOps**, and **auditable degradation** before payloads or budget cross the LLM boundary. It is written to be defensible in front of engineering leadership, security review, and capital allocation—not as a toy demo.
 
-![Cyber-FinOps Command Center — Day-1 execution surface](./aegis-dashboard.png)
-
-**Figure 1.** Cyber-FinOps command center hero asset (`./aegis-dashboard.png`). It is **generated programmatically** (reproducible FinOps demo figures and C4-style layout)—regenerate after copy changes:
+**Primary visualization:** Architecture and boundaries are documented below in **Mermaid** (C4-style). The **high-fidelity Cyber-FinOps UI** ships in [`frontend/`](frontend/)—run it locally, then capture a board-ready still if you need a raster hero:
 
 ```bash
-python3 -m pip install Pillow
-python3 scripts/generate_aegis_dashboard.py -o ./aegis-dashboard.png
+cd frontend && npm install && npm run dev
+# Open http://localhost:3000 — export to e.g. docs/screenshots/command-center.png (optional; not required in-repo)
 ```
-
-Design reference (static): [`docs/assets/image_target.png`](docs/assets/image_target.png).
 
 **Day-1 execution (narrative checklist — not a compliance attestation).**
 
@@ -61,89 +57,106 @@ Aligned with **`FinOpsAssumptions::default`**: `cache_hit_rate = 0.80`, `baselin
 
 ---
 
-## Architecture — C4-style system view (Mermaid)
+## Architecture — C4 Level 1–3 (Mermaid, Eraser-style boundaries)
 
-**Observability honesty:** [`ag-observability`](crates/ag-observability/src/lib.rs) initializes **`tracing`**. **Prometheus/Grafana** are shown as **deployment-side** scrape and dashboard wiring (e.g. OpenTelemetry export or a future `/metrics` surface)—not as a claim that this repo ships a Prometheus exporter today.
+**Observability honesty:** [`ag-observability`](crates/ag-observability/src/lib.rs) wires **`tracing`**. **Prometheus / Grafana** appear here as **deployment-side** scrape and dashboards (OTLP or future `/metrics`)—not as an in-process exporter shipped in this repo.
 
-```mermaid
-flowchart TB
-  subgraph client_edge["Client and edge"]
-    Browser["Browser"]
-    Next["Next.js Cyber-FinOps UI"]
-  end
-
-  subgraph inference_layer["Inference layer — 16-crate workspace"]
-    GW["ag-gateway Axum"]
-    AC["antigravity_core PyO3"]
-    ZC["ag-zero-copy"]
-    PRX["ag-pii-regex fast lane"]
-    PON["ag-pii-onnx ONNX NER"]
-    RD["ag-redact"]
-    FM["ag-finops-model"]
-    TV["ag-search-tantivy"]
-    CFG["ag-config policy boundary"]
-    RES["ag-resilience Timeout plus CircuitBreaker layers"]
-  end
-
-  subgraph data_plane["Data plane — zero-copy FFI"]
-    PyBuf["Python PyBuffer"]
-    Gil["GIL boundary"]
-    ArcU8["Arc of u8 stable buffer"]
-    Handler["Axum handler hot path"]
-  end
-
-  subgraph zero_trust["Zero-trust redaction primary path"]
-    TO["tokio time timeout"]
-    NER["Local ONNX NER model mount"]
-    Mask["Masked payload before LLM boundary"]
-  end
-
-  subgraph finops_engine["FinOps and resilience"]
-    SL["Sliding failure window"]
-    CB["Circuit open semantics"]
-    D10["10 ms degrade budget in-process"]
-  end
-
-  subgraph observability["Observability plane"]
-    TR["tracing subscriber ag-observability"]
-    Prom["Prometheus scrape deployment hook"]
-    Graf["Grafana dashboards deployment hook"]
-  end
-
-  Browser --> Next
-  Next --> GW
-  GW --> TV
-  GW --> FM
-  GW --> RES
-  RES --> D10
-  GW --> SL
-  SL --> CB
-  AC --> PyBuf
-  PyBuf --> Gil
-  Gil --> ArcU8
-  ArcU8 --> Handler
-  Handler --> TO
-  TO --> PON
-  PON --> NER
-  PRX -. optional fast lane .-> RD
-  PON --> RD
-  RD --> Mask
-  CFG -. trust config .-> GW
-  GW --> TR
-  TR -. OTLP or scrape .-> Prom
-  Prom -. dashboards .-> Graf
-```
-
-**C4 context (boundary narrative).**
+### Level 1 — System context
 
 ```mermaid
 flowchart LR
-  Op["Operator"]
-  Aegis["Aegis V2.5 ag-gateway"]
-  LLM["External LLM APIs"]
-  Op -->|"policy and FinOps UI"| Aegis
-  Aegis -->|"redacted allowed traffic"| LLM
-  LLM -->|"metered responses"| Aegis
+  operatorPerson[Operator]
+  aegisSystem[Aegis V2.5 ag-gateway plus UI]
+  llmExternal[External LLM APIs]
+  operatorPerson -->|"FinOps and policy UI"| aegisSystem
+  aegisSystem -->|"Redacted egress"| llmExternal
+  llmExternal -->|"Metered inference"| aegisSystem
+```
+
+### Level 2 — Containers (ingress, gateway, data plane, external)
+
+```mermaid
+flowchart TB
+  subgraph people_l2 [People]
+    opL2[Operator]
+  end
+  subgraph ingress_l2 [Container Ingress and edge]
+    browserL2[Browser]
+    nextL2[Next.js Cyber-FinOps UI]
+  end
+  subgraph gateway_l2 [Container ag-gateway Rust Axum]
+    httpL2[HTTP API and routing]
+  end
+  subgraph data_l2 [Container Data plane attachments]
+    tantivyL2[Tantivy index AG_TANTIVY_INDEX_DIR]
+    onnxL2[ONNX models under /app/models read-only]
+  end
+  subgraph ext_l2 [External systems]
+    llmL2[Metered LLM and cloud APIs]
+  end
+  opL2 --> nextL2
+  browserL2 --> nextL2
+  nextL2 -->|"JSON HTTPS typically port 8080 to gateway"| httpL2
+  httpL2 --> tantivyL2
+  httpL2 --> onnxL2
+  httpL2 -->|"Allowed traffic only"| llmL2
+```
+
+### Level 3 — Components inside gateway and FFI (16-crate workspace)
+
+```mermaid
+flowchart TB
+  subgraph ingress_l3 [Ingress to handler]
+    axumL3[ag-gateway Axum server]
+    cfgL3[ag-config policy boundary]
+  end
+  subgraph ffi_l3 [Data plane zero-copy PyO3]
+    coreL3[antigravity_core]
+    pybufL3[PyBuffer]
+    gilL3[GIL boundary]
+    arcL3[Arc stable bytes]
+    axumL3 --> coreL3
+    coreL3 --> pybufL3
+    pybufL3 --> gilL3
+    gilL3 --> arcL3
+    arcL3 --> axumL3
+  end
+  subgraph zero_l3 [Zero-trust primary path ONNX NER]
+    timeoutL3[tokio time timeout]
+    onnxCrL3[ag-pii-onnx]
+    redL3[ag-redact]
+    regexL3[ag-pii-regex fast lane]
+    timeoutL3 --> onnxCrL3
+    onnxCrL3 --> redL3
+    regexL3 -.-> redL3
+  end
+  subgraph finops_l3 [FinOps resilience]
+    resL3[ag-resilience TimeoutLayer]
+    cbL3[CircuitBreakerLayer re-export]
+    slideL3[Sliding failure circuit-open in process]
+    budgetL3["10 ms in-process degrade budget"]
+    resL3 --> budgetL3
+    cbL3 --> slideL3
+  end
+  subgraph crates_l3 [Supporting crates]
+    zcL3[ag-zero-copy]
+    finL3[ag-finops-model]
+    tvL3[ag-search-tantivy]
+    obsL3[ag-observability tracing]
+    promL3[Prometheus scrape deploy hook]
+    grafL3[Grafana dashboards deploy hook]
+  end
+  cfgL3 -.-> axumL3
+  axumL3 --> timeoutL3
+  axumL3 --> resL3
+  axumL3 --> cbL3
+  axumL3 --> slideL3
+  axumL3 --> tvL3
+  axumL3 --> finL3
+  axumL3 --> zcL3
+  axumL3 --> obsL3
+  obsL3 -.-> promL3
+  promL3 -.-> grafL3
 ```
 
 ---
@@ -167,7 +180,7 @@ docker run --rm -p 8080:8080 \
 kubectl apply -f deploy/k8s/deployment.yaml -f deploy/k8s/service.yaml
 ```
 
-**Operations:** Pin **`image:`** to an **immutable registry tag** in production; set **`imagePullPolicy: Always`** (or equivalent). Replace **`emptyDir`** volumes with **PVCs** for Tantivy and ONNX where durability matters.
+**Operations (aligned with [`deploy/k8s/deployment.yaml`](deploy/k8s/deployment.yaml)):** Container **`containerPort: 8080`**; **`AG_GATEWAY_LISTEN=0.0.0.0:8080`**; **`AG_TANTIVY_INDEX_DIR=/data/tantivy_index`**; volume mounts **`/data/tantivy_index`** (Tantivy) and **`/app/models`** (read-only ONNX). **Liveness** `GET /health`; **readiness** `GET /ready` (second-scale `timeoutSeconds`, distinct from **~10 ms** in-process degrade budget). **RollingUpdate:** `maxUnavailable: 0`, `maxSurge: 1`. Pin **`image:`** to an **immutable registry tag**; set **`imagePullPolicy: Always`** in production. Replace **`emptyDir`** with **PVCs** where durability matters.
 
 ---
 
