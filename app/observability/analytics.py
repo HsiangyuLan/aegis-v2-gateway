@@ -28,7 +28,9 @@ from __future__ import annotations
 
 import asyncio
 import glob as _glob
+import json
 import logging
+import time
 from pathlib import Path
 from typing import Any
 
@@ -199,3 +201,96 @@ class FinOpsAnalyticsEngine:
             p99_latency_ms=p99_latency_ms,
             data_available=True,
         )
+
+
+# ── SecOps Agent 推理記錄器 ────────────────────────────────────────────────────
+
+class AgentInferenceLogger:
+    """
+    將 SecOpsReasoningAgent 每次推理的 Token 消耗與決策結果
+    寫入 JSONL 檔案，供前端 TCO 儀表板讀取分析。
+
+    設計原則
+    --------
+    - 寫入操作完全同步（在 asyncio.to_thread 中執行），不阻塞 ASGI 事件迴圈。
+    - 每筆記錄為獨立 JSON 一行，易於後續 Polars scan_ndjson 串流讀取。
+    - log_dir 不存在時自動建立，確保首次啟動不需手動佈建目錄。
+    """
+
+    _LOG_FILENAME = "agent_inference.jsonl"
+
+    def __init__(self, log_dir: str | Path) -> None:
+        self._log_path = Path(log_dir) / self._LOG_FILENAME
+        # 首次啟動時確保目錄存在
+        self._log_path.parent.mkdir(parents=True, exist_ok=True)
+        logger.info("AgentInferenceLogger 初始化 | log_path=%s", self._log_path)
+
+    async def log_agent_inference(
+        self,
+        *,
+        action: str,
+        simulated_tokens: int,
+        confidence: float,
+        elapsed_ms: float,
+        status: str,
+        reasoning_steps: list[str] | None = None,
+        extra: dict[str, Any] | None = None,
+    ) -> None:
+        """
+        非同步記錄一次 SecOps Agent 推理的商業成本與決策結果。
+
+        參數皆為關鍵字引數，強制呼叫端明確傳入每個欄位，避免位置錯誤。
+
+        Parameters
+        ----------
+        action:
+            防禦決策，例如 "BLOCK" / "ALLOW" / "RATE_LIMIT"。
+        simulated_tokens:
+            本次推理消耗的模擬 Token 數量（用於 TCO 試算）。
+        confidence:
+            Agent 對決策的信心分數（0.0–1.0）。
+        elapsed_ms:
+            推理耗時（毫秒）。
+        status:
+            推理結束狀態，例如 "ok" / "blocked_timeout"。
+        reasoning_steps:
+            推理軌跡（可選），便於稽核。
+        extra:
+            其他自定欄位（可選）。
+
+        Edge Cases
+        ----------
+        - 磁碟空間不足或寫入權限錯誤：捕獲 OSError 並記錄 warning，
+          不拋出例外以避免影響主要 API 回應。
+        - 若 log_dir 在執行期間被刪除：下次呼叫 mkdir 會重建目錄。
+        """
+        record: dict[str, Any] = {
+            "timestamp_ms":     int(time.time() * 1000),
+            "action":           action,
+            "simulated_tokens": simulated_tokens,
+            "confidence":       confidence,
+            "elapsed_ms":       elapsed_ms,
+            "status":           status,
+            "reasoning_steps":  reasoning_steps or [],
+        }
+        if extra:
+            record.update(extra)
+
+        # CPU-bound 的磁碟寫入移至執行緒池，不阻塞事件迴圈
+        await asyncio.to_thread(self._write_sync, record)
+
+    def _write_sync(self, record: dict[str, Any]) -> None:
+        """
+        同步寫入單筆 JSONL 記錄（在 asyncio.to_thread 執行緒中執行）。
+
+        使用 append 模式：即使程序重啟，舊記錄不會遺失。
+        """
+        try:
+            # 若目錄在執行期間被刪除，重建之
+            self._log_path.parent.mkdir(parents=True, exist_ok=True)
+            with self._log_path.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        except OSError as exc:
+            logger.warning(
+                "AgentInferenceLogger 寫入失敗（磁碟或權限問題）: %s", exc
+            )

@@ -3,15 +3,17 @@ HTTP endpoints.
 
 Sprint 1: GET /healthz, GET /telemetry/gpu
 Sprint 2: POST /v1/infer
-Phase 2:  GET /v1/workers  (NEW)
-Phase 5:  GET /v1/analytics/finops  (NEW)
+Phase 2:  GET /v1/workers
+Phase 5:  GET /v1/analytics/finops
+Hackathon: POST /v1/secops/analyze  (SecOps Reasoning Agent)
 
 All business logic lives in domain classes; endpoints are intentionally thin
-(≤3 lines of logic each) to respect the Single Responsibility Principle.
+(≤5 lines of logic each) to respect the Single Responsibility Principle.
 """
 from __future__ import annotations
 
 from fastapi import APIRouter, Request
+from pydantic import BaseModel, Field
 
 from app.models.infer import InferRequest, InferResponse
 from app.observability.analytics import FinOpsReport
@@ -128,3 +130,63 @@ async def finops_analytics(request: Request) -> FinOpsReport:
     is never blocked by data processing.
     """
     return await request.app.state.analytics_engine.compute()
+
+
+# ── Hackathon: SecOps Reasoning Agent ─────────────────────────────────────────
+
+class SecOpsRequest(BaseModel):
+    """入站可疑事件 payload。"""
+
+    suspicious_ip:  str  = Field(default="", description="可疑來源 IP")
+    event_type:     str  = Field(default="unknown", description="事件類型，如 brute_force")
+    request_count:  int  = Field(default=0, ge=0, description="觀察期間請求次數")
+    raw_log:        str  = Field(default="", description="原始日誌片段（已由 antigravity_core 遮蔽 PII）")
+    extra:          dict = Field(default_factory=dict, description="其他自定欄位")
+
+
+@router.post(
+    "/v1/secops/analyze",
+    summary="SecOps Reasoning Agent — 多步驟威脅分析與防禦決策",
+    tags=["SecOps"],
+)
+async def secops_analyze(body: SecOpsRequest, request: Request) -> dict:
+    """
+    接收可疑 IP / Payload，呼叫 SecOpsReasoningAgent 執行最多 3 步推理，
+    回傳 BLOCK / ALLOW / RATE_LIMIT 防禦決策與推理軌跡。
+
+    完成後非同步寫入推理記錄（Token 消耗 + 決策）至 AgentInferenceLogger，
+    供前端 TCO 儀表板讀取。
+
+    Edge Cases
+    ----------
+    - 空白 payload 欄位：Agent 內部以預設值推理，不回傳 400。
+    - API 超時 / Token 耗盡：Agent Fail-Closed，強制回傳 BLOCK。
+    - 記錄寫入失敗：捕獲 OSError 於 AgentInferenceLogger 內，不影響主回應。
+    """
+    payload = {
+        "suspicious_ip":  body.suspicious_ip,
+        "event_type":     body.event_type,
+        "request_count":  body.request_count,
+        "raw_log":        body.raw_log,
+        **body.extra,
+    }
+
+    result: dict = await request.app.state.secops_agent.analyze_threat(payload)
+
+    # 非同步記錄推理結果（不 await 等待完成，確保回應不被磁碟 I/O 阻塞）
+    agent_logger = request.app.state.agent_logger
+    request.app.state  # keep reference alive
+    import asyncio as _asyncio
+    _asyncio.ensure_future(
+        agent_logger.log_agent_inference(
+            action=result.get("action", "BLOCK"),
+            simulated_tokens=result.get("simulated_tokens", 0),
+            confidence=result.get("confidence", 0.0),
+            elapsed_ms=result.get("elapsed_ms", 0.0),
+            status=result.get("status", "unknown"),
+            reasoning_steps=result.get("reasoning_steps", []),
+            extra={"suspicious_ip": body.suspicious_ip, "event_type": body.event_type},
+        )
+    )
+
+    return result

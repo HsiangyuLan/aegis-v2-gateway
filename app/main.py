@@ -33,8 +33,9 @@ import httpx
 import uvicorn
 from fastapi import FastAPI
 
+from app.agents.secops_agent import SecOpsReasoningAgent
 from app.core.config import get_settings
-from app.observability.analytics import FinOpsAnalyticsEngine
+from app.observability.analytics import AgentInferenceLogger, FinOpsAnalyticsEngine
 from app.observability.parquet_logger import RequestLogger
 from app.resilience.circuit_breaker import CircuitBreaker, CircuitBreakerBackend
 from app.routing.entropy import SemanticEntropyProbe, build_rust_entropy_engine
@@ -142,6 +143,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     # All Polars work runs in asyncio.to_thread() to keep the event loop free.
     analytics_engine = FinOpsAnalyticsEngine(settings=settings)
     app.state.analytics_engine = analytics_engine
+
+    # ── Hackathon: SecOps Agent + 推理記錄器 ──────────────────────────────────
+    # SecOpsReasoningAgent 為無狀態 Agent；Foundry IQ endpoint 由環境變數注入。
+    # AgentInferenceLogger 將每次推理結果寫入 JSONL，供 TCO 儀表板分析。
+    secops_agent = SecOpsReasoningAgent(
+        foundry_iq_endpoint=getattr(settings, "foundry_iq_endpoint", None)
+    )
+    agent_logger = AgentInferenceLogger(log_dir=settings.finops_log_dir)
+    app.state.secops_agent = secops_agent
+    app.state.agent_logger = agent_logger
+    logger.info("SecOpsReasoningAgent + AgentInferenceLogger 已掛載。")
 
     # ── Phase 2: Worker Registry + KV-Aware Router ────────────────────────────
     worker_registry_state = WorkerRegistryState()
