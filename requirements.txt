@@ -24,3 +24,14 @@ httpx[http2]>=0.27.0
 # gracefully when nvmlInit() fails at runtime (e.g. inside containers without
 # /dev/nvidia* device mounts).
 nvidia-ml-py3>=7.352.0
+
+# ── Host system metrics ───────────────────────────────────────────────────────
+# psutil provides cross-platform CPU / memory / network I/O statistics.
+# Used by app/api/telemetry.py to serve real-time host metrics without mocking.
+psutil>=6.0.0
+
+# ── Async SQLite (FinOps Ledger) ──────────────────────────────────────────────
+# aiosqlite wraps the stdlib sqlite3 module with asyncio-compatible coroutines,
+# enabling non-blocking FinOps transaction persistence inside the uvloop event
+# loop.  Used by app/db/ledger_db.py and all /api/ledger/* endpoints.
+aiosqlite>=0.20.0

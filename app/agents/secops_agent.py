@@ -1,24 +1,30 @@
 """
-SecOps Reasoning Agent — Microsoft Agents League Hackathon (Reasoning Agents Track)
+SecOps Reasoning Agent — 生產環境版本（GitHub Models GPT-4o）
 
-提供 ``SecOpsReasoningAgent``：透過模擬 MCP (Model Context Protocol) 呼叫
-Microsoft Foundry IQ 執行多步驟推理，針對可疑 Payload 進行資安合規檢查，
+提供 ``SecOpsReasoningAgent``：透過 OpenAI SDK 連接 GitHub Models GPT-4o 算力，
+執行真實 LLM 推理，針對可疑 Payload 進行資安合規檢查，
 並輸出具有商業可追溯性的防禦決策（BLOCK / ALLOW / RATE_LIMIT）。
 
 整合介面
 --------
-- Foundry IQ endpoint 透過建構子注入（來源：``AEGIS_FOUNDRY_IQ_ENDPOINT``）。
+- Foundry API Key 與 Endpoint 透過 ``app.core.config`` 讀取（來源：`.env`）。
 - 全程 async；可在 FastAPI lifespan 中作為 ``app.state.secops_agent`` 掛載。
-- 推理步驟上限 ``max_steps=3``，超過強制中斷並預設 BLOCK，防止 Hallucination Loop。
+- 啟用 JSON Mode (`response_format={"type": "json_object"}`)，確保輸出結構穩定。
+- 任何例外均觸發 Fail-Closed 機制，回傳預設 BLOCK，確保 API Gateway 不崩潰。
 - PII 在進入本模組前已由 ``antigravity_core.execute_command`` 完成遮蔽。
 """
 from __future__ import annotations
 
-import asyncio
+import json
 import logging
 import time
 from enum import Enum
 from typing import Any
+
+from openai import AsyncOpenAI
+
+from app.core.config import get_settings
+from app.db.ledger_db import insert_ledger_entry
 
 logger = logging.getLogger(__name__)
 
@@ -30,42 +36,71 @@ class DefenseAction(str, Enum):
     RATE_LIMIT = "RATE_LIMIT"
 
 
-# ── 推理步驟常數 ───────────────────────────────────────────────────────────────
+# ── 常數 ───────────────────────────────────────────────────────────────────────
 
-MAX_REASONING_STEPS = 3  # 超過此限制強制中斷，防止 Hallucination Loop
+MAX_REASONING_STEPS = 3  # 規定 LLM 最多執行 3 步推理
 
-# 每步驟模擬 Token 消耗（當 Foundry IQ 尚未接入時使用）
-_SIMULATED_TOKENS_PER_STEP = 120
+# Fail-Closed 預設回傳：任何 API 異常均回傳此安全基線，確保 Gateway 不崩潰
+_FAIL_CLOSED_RESPONSE: dict[str, Any] = {
+    "action": "BLOCK",
+    "confidence": 1.0,
+    "reasoning_steps": ["API 呼叫失敗，觸發 Fail-Closed 安全機制，預設阻擋"],
+    "simulated_tokens": 0,
+}
+
+# 合法 action 值集合（用於回傳驗證）
+_VALID_ACTIONS = frozenset(a.value for a in DefenseAction)
+
+# ── System Prompt（微軟 Foundry IQ 企業級 SecOps 分析師角色） ──────────────────
+
+_SYSTEM_PROMPT = (
+    "你是一個微軟 Foundry IQ 支援的企業級 SecOps 分析師。"
+    "請根據傳入的資安日誌與 Payload 進行邏輯推理，判斷這是否為惡意攻擊。"
+    f"請執行最多 {MAX_REASONING_STEPS} 個推理步驟後給出結論。\n\n"
+    "你必須以純 JSON 格式回傳，包含以下四個 Key（不得包含其他欄位）：\n"
+    "- action (string): 防禦決策，必須是 BLOCK、ALLOW 或 RATE_LIMIT 其中之一\n"
+    "- confidence (float): 信心分數，範圍 0.0 到 1.0\n"
+    "- reasoning_steps (array of strings): 你的推理步驟，每個元素為一個步驟描述\n"
+    "- simulated_tokens (integer): 模擬本次分析消耗的 token 量，供 FinOps 紀錄\n"
+)
 
 
 # ── Agent 主體 ─────────────────────────────────────────────────────────────────
 
 class SecOpsReasoningAgent:
     """
-    多步驟推理資安代理。
+    多步驟推理資安代理（生產環境版本）。
 
-    狀態機流程（每次 ``analyze_threat`` 呼叫）：
+    透過 GitHub Models GPT-4o 執行真實 LLM 推理，
+    產出 BLOCK / ALLOW / RATE_LIMIT 防禦決策。
 
-      Step 1 — SOP 檢索：從 Foundry IQ 取得相關資安合規 SOP 文件。
-      Step 2 — Payload 分析：解析可疑 IP / 行為特徵，對照威脅情報。
-      Step 3 — 決策輸出：根據前兩步產出 BLOCK / ALLOW / RATE_LIMIT。
-
-    若任一步驟超出 ``MAX_REASONING_STEPS``（預設 3）或發生 API 超時，
-    強制回傳 BLOCK，確保 Fail-Closed 資安姿態。
+    啟動流程：
+      1. 從 ``get_settings()`` 讀取 FOUNDRY_API_KEY 與 FOUNDRY_ENDPOINT。
+      2. 建立 ``AsyncOpenAI`` 客戶端（指向 GitHub Models endpoint）。
+      3. 每次 ``analyze_threat`` 呼叫均發送真實 Chat Completion 請求。
+      4. 任何例外均觸發 Fail-Closed，回傳預設 BLOCK。
     """
 
-    def __init__(self, foundry_iq_endpoint: str | None = None) -> None:
-        self._endpoint = foundry_iq_endpoint
+    def __init__(self) -> None:
+        settings = get_settings()
+        # 建立非同步 OpenAI 客戶端，指向 GitHub Models 端點
+        self.llm_client = AsyncOpenAI(
+            api_key=settings.foundry_api_key,
+            base_url=settings.foundry_endpoint,
+        )
+        self._ledger_db_path: str = settings.finops_ledger_db_path
         logger.info(
-            "SecOpsReasoningAgent 初始化 | foundry_iq_endpoint=%s",
-            self._endpoint or "未設定（離線模式）",
+            "SecOpsReasoningAgent 初始化（生產模式）| endpoint=%s | api_key_set=%s | ledger_db=%s",
+            settings.foundry_endpoint,
+            bool(settings.foundry_api_key),
+            self._ledger_db_path,
         )
 
     # ── 公開介面 ───────────────────────────────────────────────────────────────
 
     async def analyze_threat(self, payload: dict[str, Any]) -> dict[str, Any]:
         """
-        執行多步驟威脅分析，回傳防禦決策與推理軌跡。
+        執行真實 LLM 威脅分析，回傳防禦決策與推理軌跡。
 
         Parameters
         ----------
@@ -76,204 +111,145 @@ class SecOpsReasoningAgent:
         Returns
         -------
         dict
-            ``{"action": DefenseAction, "reasoning_steps": list[str],
-               "confidence": float, "simulated_tokens": int,
-               "elapsed_ms": float, "status": str}``
+            ``{"action": str, "confidence": float, "reasoning_steps": list[str],
+               "simulated_tokens": int, "elapsed_ms": float, "status": str}``
 
         Edge Cases
         ----------
-        - 空白 payload         → 立即回傳 BLOCK（不進入推理迴圈）。
-        - 超過 MAX_STEPS       → 強制中斷並回傳 BLOCK。
-        - asyncio.TimeoutError → 捕獲後回傳 BLOCK，附帶超時說明。
-        - 任意未預期例外       → 記錄 traceback，Fail-Closed 回傳 BLOCK。
+        - 空白 payload   → 立即回傳 BLOCK（不消耗 LLM token）。
+        - API 任何例外   → Fail-Closed，回傳預設 BLOCK，附帶錯誤 status。
+        - 非法 action 值 → 視為 API 格式異常，同樣觸發 Fail-Closed。
         """
         start_ms = time.monotonic() * 1000
 
-        try:
-            # ── 防禦前置：空白 payload 直接 BLOCK ─────────────────────────
-            if not payload:
-                logger.warning("analyze_threat | 收到空白 payload，直接 BLOCK")
-                return self._build_result(
-                    action=DefenseAction.BLOCK,
-                    steps=["[拒絕] payload 為空，無法分析，執行預設 BLOCK"],
-                    confidence=1.0,
-                    tokens=0,
-                    start_ms=start_ms,
-                    status="blocked_empty_payload",
-                )
-
-            reasoning_steps: list[str] = []
-            total_tokens = 0
-
-            # ── Step 1：SOP 文件檢索（模擬 MCP → Foundry IQ） ─────────────
-            step1_result, tokens1 = await self._step_retrieve_sop(payload)
-            reasoning_steps.append(step1_result)
-            total_tokens += tokens1
-
-            # 步驟計數守衛：理論上 Step 1 已是第 1 步，但保留供未來展開用
-            if len(reasoning_steps) >= MAX_REASONING_STEPS + 1:
-                logger.warning("analyze_threat | 推理步驟超限，強制 BLOCK")
-                return self._build_result(
-                    action=DefenseAction.BLOCK,
-                    steps=reasoning_steps + ["[守衛] 超過 max_steps，強制中斷"],
-                    confidence=0.9,
-                    tokens=total_tokens,
-                    start_ms=start_ms,
-                    status="blocked_max_steps",
-                )
-
-            # ── Step 2：Payload 異常分析 ───────────────────────────────────
-            step2_result, tokens2 = await self._step_analyze_payload(payload, step1_result)
-            reasoning_steps.append(step2_result)
-            total_tokens += tokens2
-
-            if len(reasoning_steps) >= MAX_REASONING_STEPS + 1:
-                logger.warning("analyze_threat | 推理步驟超限，強制 BLOCK")
-                return self._build_result(
-                    action=DefenseAction.BLOCK,
-                    steps=reasoning_steps + ["[守衛] 超過 max_steps，強制中斷"],
-                    confidence=0.9,
-                    tokens=total_tokens,
-                    start_ms=start_ms,
-                    status="blocked_max_steps",
-                )
-
-            # ── Step 3：決策輸出 ───────────────────────────────────────────
-            action, confidence, step3_result, tokens3 = await self._step_decide(
-                payload, reasoning_steps
+        # ── 防禦前置：空白 payload 直接 BLOCK，不消耗 LLM token ─────────────
+        if not payload:
+            logger.warning("analyze_threat | 收到空白 payload，直接 BLOCK")
+            return self._build_result(
+                llm_response={
+                    **_FAIL_CLOSED_RESPONSE,
+                    "reasoning_steps": ["payload 為空，無法分析，執行預設 BLOCK"],
+                },
+                start_ms=start_ms,
+                status="blocked_empty_payload",
             )
-            reasoning_steps.append(step3_result)
-            total_tokens += tokens3
+
+        try:
+            # ── 組裝使用者訊息，含完整 payload 上下文 ────────────────────────
+            user_message = (
+                "以下是需要分析的資安事件 Payload：\n"
+                f"{json.dumps(payload, ensure_ascii=False, indent=2)}\n\n"
+                f"請執行最多 {MAX_REASONING_STEPS} 步的邏輯推理後給出最終判斷。"
+            )
+
+            # ── 呼叫 GitHub Models GPT-4o，強制啟用 JSON Mode ────────────────
+            response = await self.llm_client.chat.completions.create(
+                model="gpt-4o",
+                messages=[
+                    {"role": "system", "content": _SYSTEM_PROMPT},
+                    {"role": "user",   "content": user_message},
+                ],
+                response_format={"type": "json_object"},
+                temperature=0.1,  # 低溫度確保輸出穩定、可重現
+            )
+
+            raw_content = response.choices[0].message.content or "{}"
+            llm_data: dict[str, Any] = json.loads(raw_content)
+
+            # ── 驗證四個必要 Key 存在性 ───────────────────────────────────────
+            for required_key in ("action", "confidence", "reasoning_steps", "simulated_tokens"):
+                if required_key not in llm_data:
+                    raise ValueError(f"LLM 回傳缺少必要 Key: {required_key!r}")
+
+            # ── 驗證 action 值合法性 ──────────────────────────────────────────
+            if llm_data["action"] not in _VALID_ACTIONS:
+                raise ValueError(f"LLM 回傳非法 action 值: {llm_data['action']!r}，必須為 {_VALID_ACTIONS}")
+
+            tokens_used: int = int(llm_data.get("simulated_tokens", 0))
+            action_value: str = llm_data["action"]
 
             logger.info(
-                "analyze_threat | 決策=%s confidence=%.2f steps=%d tokens=%d",
-                action, confidence, len(reasoning_steps), total_tokens,
+                "analyze_threat | LLM 決策=%s confidence=%.2f simulated_tokens=%d",
+                action_value,
+                float(llm_data.get("confidence", 0.0)),
+                tokens_used,
             )
 
-            return self._build_result(
-                action=action,
-                steps=reasoning_steps,
-                confidence=confidence,
-                tokens=total_tokens,
+            result = self._build_result(
+                llm_response=llm_data,
                 start_ms=start_ms,
                 status="ok",
             )
 
-        except asyncio.TimeoutError:
-            # API 超時：Fail-Closed，強制 BLOCK
-            logger.error("analyze_threat | Foundry IQ API 超時，強制 BLOCK")
-            return self._build_result(
-                action=DefenseAction.BLOCK,
-                steps=["[錯誤] API 呼叫超時，執行預設 BLOCK"],
-                confidence=0.95,
-                tokens=0,
-                start_ms=start_ms,
-                status="blocked_timeout",
-            )
-        except ValueError as exc:
-            logger.warning("analyze_threat | 驗證錯誤: %s", exc)
-            return self._build_result(
-                action=DefenseAction.BLOCK,
-                steps=[f"[驗證錯誤] {exc}"],
-                confidence=0.8,
-                tokens=0,
-                start_ms=start_ms,
-                status="error_validation",
-            )
-        except Exception as exc:  # noqa: BLE001
-            logger.exception("analyze_threat | 未預期例外: %s", exc)
-            return self._build_result(
-                action=DefenseAction.BLOCK,
-                steps=[f"[系統錯誤] {type(exc).__name__}: {exc}"],
-                confidence=0.95,
-                tokens=0,
-                start_ms=start_ms,
-                status="error_unexpected",
+            # ── 非同步寫入 FinOps SQLite Ledger（fire-and-forget，不阻塞回傳）────
+            import asyncio as _asyncio
+            _asyncio.ensure_future(
+                insert_ledger_entry(
+                    self._ledger_db_path,
+                    service="secops_agent",
+                    tokens=tokens_used,
+                    action=action_value,
+                    status="ok",
+                )
             )
 
-    # ── 私有步驟方法 ───────────────────────────────────────────────────────────
+            return result
 
-    async def _step_retrieve_sop(
-        self, payload: dict[str, Any]
-    ) -> tuple[str, int]:
-        """
-        Step 1：透過模擬 MCP 呼叫從 Foundry IQ 檢索資安合規 SOP。
+        except Exception as exc:
+            # ── Graceful Degradation：任何例外（Timeout / ConnectionError / 解析錯誤）
+            #    均觸發 Fail-Closed，直接回傳預設 BLOCK，絕不讓 Gateway 崩潰。
+            logger.exception(
+                "analyze_threat | API 呼叫失敗，觸發 Fail-Closed 安全機制 | %s: %s",
+                type(exc).__name__,
+                exc,
+            )
+            result = self._build_result(
+                llm_response=_FAIL_CLOSED_RESPONSE,
+                start_ms=start_ms,
+                status="error_fail_closed",
+            )
 
-        待 Foundry IQ SDK 接入後，替換為真實 retrieve() 呼叫。
-        回傳 (步驟描述, 消耗 token 數)。
-        """
-        # 模擬網路 I/O（非阻塞）；Foundry IQ 接入後改為 await client.retrieve(...)
-        await asyncio.sleep(0)
-        event_type = payload.get("event_type", "unknown")
-        description = (
-            f"[Step 1 / SOP 檢索] event_type={event_type!r} → "
-            f"已從 Foundry IQ 取得 SOC2-CC6.1、NIST-IR.2 合規控制項（模擬）"
-        )
-        return description, _SIMULATED_TOKENS_PER_STEP
+            # ── 失敗情況同樣寫入 Ledger，記錄 0 tokens + fail 狀態 ─────────────
+            import asyncio as _asyncio
+            _asyncio.ensure_future(
+                insert_ledger_entry(
+                    self._ledger_db_path,
+                    service="secops_agent",
+                    tokens=0,
+                    action="BLOCK",
+                    status="error_fail_closed",
+                )
+            )
 
-    async def _step_analyze_payload(
-        self, payload: dict[str, Any], sop_context: str
-    ) -> tuple[str, int]:
-        """
-        Step 2：對照 SOP 上下文分析可疑 Payload，產出風險評估。
-
-        回傳 (步驟描述, 消耗 token 數)。
-        """
-        await asyncio.sleep(0)
-        suspicious_ip = payload.get("suspicious_ip", "N/A")
-        request_count = payload.get("request_count", 0)
-
-        # 簡易風險評估邏輯（正式版改為 LLM 推理）
-        risk_level = "HIGH" if int(request_count) > 100 else "LOW"
-        description = (
-            f"[Step 2 / Payload 分析] IP={suspicious_ip}, "
-            f"request_count={request_count}, risk_level={risk_level}"
-        )
-        return description, _SIMULATED_TOKENS_PER_STEP
-
-    async def _step_decide(
-        self, payload: dict[str, Any], prior_steps: list[str]
-    ) -> tuple[DefenseAction, float, str, int]:
-        """
-        Step 3：根據前兩步推理結果決定最終防禦動作。
-
-        回傳 (action, confidence, 步驟描述, 消耗 token 數)。
-        """
-        await asyncio.sleep(0)
-        request_count = int(payload.get("request_count", 0))
-
-        # 決策規則（待 Foundry IQ 推理引擎接入後可轉為 Chain-of-Thought prompt）
-        if request_count > 500:
-            action, confidence = DefenseAction.BLOCK, 0.97
-        elif request_count > 100:
-            action, confidence = DefenseAction.RATE_LIMIT, 0.85
-        else:
-            action, confidence = DefenseAction.ALLOW, 0.75
-
-        description = (
-            f"[Step 3 / 決策] action={action.value}, "
-            f"confidence={confidence:.2f}，依據前序 {len(prior_steps)} 步推理"
-        )
-        return action, confidence, description, _SIMULATED_TOKENS_PER_STEP
+            return result
 
     # ── 輔助方法 ───────────────────────────────────────────────────────────────
 
     @staticmethod
     def _build_result(
         *,
-        action: DefenseAction,
-        steps: list[str],
-        confidence: float,
-        tokens: int,
+        llm_response: dict[str, Any],
         start_ms: float,
         status: str,
     ) -> dict[str, Any]:
+        """
+        將 LLM 回傳與執行元數據合併為標準輸出格式。
+
+        Parameters
+        ----------
+        llm_response:
+            已驗證的 LLM JSON 回傳（或 Fail-Closed 預設值）。
+        start_ms:
+            ``time.monotonic() * 1000`` 的起始時間戳，用於計算 elapsed_ms。
+        status:
+            執行狀態字串（"ok" / "error_fail_closed" / "blocked_empty_payload" 等）。
+        """
         elapsed = time.monotonic() * 1000 - start_ms
         return {
-            "action":            action.value,
-            "reasoning_steps":   steps,
-            "confidence":        confidence,
-            "simulated_tokens":  tokens,
-            "elapsed_ms":        round(elapsed, 2),
-            "status":            status,
+            "action":           llm_response.get("action", "BLOCK"),
+            "confidence":       float(llm_response.get("confidence", 1.0)),
+            "reasoning_steps":  llm_response.get("reasoning_steps", []),
+            "simulated_tokens": int(llm_response.get("simulated_tokens", 0)),
+            "elapsed_ms":       round(elapsed, 2),
+            "status":           status,
         }

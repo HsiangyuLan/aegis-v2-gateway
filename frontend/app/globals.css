@@ -1,5 +1,7 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap");
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&display=swap');
+
+/* 以下保持不變 */
 
 /* ═══════════════════════════════════════════════════════════════════════════
    AEGIS V2.5 — Sovereign Void Design System
@@ -8,37 +10,40 @@
 
 /* ── Design Tokens ────────────────────────────────────────────────────────── */
 :root {
-  --bg-void:       #050505;
-  --bg-panel:      #060c14;
-  --bg-panel-2:    #08111a;
-  --bg-panel-3:    #0a1520;
-  --neon:          #00F0FF;
-  --neon-dim:      #005a6b;
-  --neon-glow:     rgba(0, 240, 255, 0.15);
-  --neon-glow-md:  rgba(0, 240, 255, 0.30);
-  --neon-glow-lg:  rgba(0, 240, 255, 0.50);
-  --neon-purple:   #c084fc;
+  --bg-void: #050505;
+  --bg-panel: #060c14;
+  --bg-panel-2: #08111a;
+  --bg-panel-3: #0a1520;
+  --neon: #00f0ff;
+  --neon-dim: #005a6b;
+  --neon-glow: rgba(0, 240, 255, 0.15);
+  --neon-glow-md: rgba(0, 240, 255, 0.3);
+  --neon-glow-lg: rgba(0, 240, 255, 0.5);
+  --neon-purple: #c084fc;
   --neon-purple-dim: rgba(168, 85, 247, 0.35);
-  --panel-glass:   rgba(6, 12, 22, 0.72);
-  --text-primary:  #c8eef5;
-  --text-secondary:#4a8a9a;
-  --text-muted:    #2a4a55;
-  --danger:        #ff2d55;
-  --success:       #00ff88;
-  --warn:          #ffcc00;
-  --border:        rgba(0, 240, 255, 0.12);
+  --panel-glass: rgba(6, 12, 22, 0.72);
+  --text-primary: #c8eef5;
+  --text-secondary: #4a8a9a;
+  --text-muted: #2a4a55;
+  --danger: #ff2d55;
+  --success: #00ff88;
+  --warn: #ffcc00;
+  --border: rgba(0, 240, 255, 0.12);
   --border-active: rgba(0, 240, 255, 0.5);
-  --font-mono: 'JetBrains Mono', 'Geist Mono', ui-monospace, monospace;
+  --font-mono: "JetBrains Mono", "Geist Mono", ui-monospace, monospace;
 }
 
 /* ── Reset ────────────────────────────────────────────────────────────────── */
-*, *::before, *::after {
+*,
+*::before,
+*::after {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-html, body {
+html,
+body {
   height: 100%;
   overflow: hidden;
 }
@@ -56,9 +61,12 @@ body {
 
 /* ── CRT Scanline Overlay ─────────────────────────────────────────────────── */
 body::before {
-  content: '';
+  content: "";
   position: fixed;
-  top: 0; left: 0; right: 0; bottom: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
   background: repeating-linear-gradient(
     0deg,
     transparent,
@@ -72,9 +80,11 @@ body::before {
 
 /* ── Scan beam drift ──────────────────────────────────────────────────────── */
 body::after {
-  content: '';
+  content: "";
   position: fixed;
-  top: -100%; left: 0; right: 0;
+  top: -100%;
+  left: 0;
+  right: 0;
   height: 200%;
   background: linear-gradient(
     to bottom,
@@ -88,8 +98,12 @@ body::after {
 }
 
 @keyframes scan-beam {
-  0%   { transform: translateY(0); }
-  100% { transform: translateY(50%); }
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(50%);
+  }
 }
 
 /* ── Neon Glow Text ───────────────────────────────────────────────────────── */
@@ -143,7 +157,12 @@ body::after {
 }
 
 .sv-sla-strip {
-  background: linear-gradient(90deg, rgba(0, 24, 40, 0.92) 0%, rgba(24, 12, 40, 0.88) 50%, rgba(0, 16, 28, 0.92) 100%);
+  background: linear-gradient(
+    90deg,
+    rgba(0, 24, 40, 0.92) 0%,
+    rgba(24, 12, 40, 0.88) 50%,
+    rgba(0, 16, 28, 0.92) 100%
+  );
   border-bottom: 1px solid rgba(0, 240, 255, 0.12);
   border-top: 1px solid rgba(192, 132, 252, 0.15);
   backdrop-filter: blur(12px);
@@ -158,9 +177,11 @@ body::after {
 }
 
 .sv-panel::before {
-  content: '';
+  content: "";
   position: absolute;
-  top: 0; left: 0; right: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 1px;
   background: linear-gradient(90deg, transparent, var(--neon-dim), transparent);
   opacity: 0.6;
@@ -178,7 +199,8 @@ body::after {
 
 /* ── Keyframe Animations ──────────────────────────────────────────────────── */
 @keyframes neon-pulse {
-  0%, 100% {
+  0%,
+  100% {
     text-shadow:
       0 0 10px var(--neon),
       0 0 20px var(--neon),
@@ -194,28 +216,73 @@ body::after {
 }
 
 @keyframes bar-rise {
-  from { transform: scaleY(0); }
-  to   { transform: scaleY(1); }
+  from {
+    transform: scaleY(0);
+  }
+  to {
+    transform: scaleY(1);
+  }
+}
+
+/* ── Flowing energy ribbon — vertical upward charge for telemetry bars ────── */
+@keyframes flow-ribbon-v {
+  0% {
+    background-position: 50% 150%;
+  }
+  100% {
+    background-position: 50% -50%;
+  }
+}
+
+/* ── Offline panel border breathing ─────────────────────────────────────── */
+@keyframes offline-breath {
+  0%,
+  100% {
+    border-color: rgba(255, 45, 85, 0.2);
+    box-shadow: 0 0 0 rgba(255, 45, 85, 0);
+  }
+  50% {
+    border-color: rgba(255, 45, 85, 0.7);
+    box-shadow:
+      0 0 20px rgba(255, 45, 85, 0.25),
+      inset 0 0 8px rgba(255, 45, 85, 0.06);
+  }
 }
 
 @keyframes blink-cursor {
-  0%, 100% { opacity: 1; }
-  50%       { opacity: 0; }
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
 }
 
 @keyframes ticker-scroll {
-  0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 @keyframes status-dot {
-  0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--neon); }
-  50%       { opacity: 0.4; box-shadow: none; }
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 4px var(--neon);
+  }
+  50% {
+    opacity: 0.4;
+    box-shadow: none;
+  }
 }
 
 /* ── Utility classes ──────────────────────────────────────────────────────── */
 .cursor-blink::after {
-  content: '█';
+  content: "█";
   animation: blink-cursor 1s step-end infinite;
   color: var(--neon);
   margin-left: 2px;
@@ -231,10 +298,20 @@ body::after {
 }
 
 /* ── Custom scrollbar ─────────────────────────────────────────────────────── */
-::-webkit-scrollbar               { width: 3px; height: 3px; }
-::-webkit-scrollbar-track         { background: var(--bg-void); }
-::-webkit-scrollbar-thumb         { background: var(--neon-dim); border-radius: 0; }
-::-webkit-scrollbar-thumb:hover   { background: var(--neon); }
+::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-void);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--neon-dim);
+  border-radius: 0;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--neon);
+}
 
 /* ── Selection ────────────────────────────────────────────────────────────── */
 ::selection {
@@ -243,7 +320,9 @@ body::after {
 }
 
 /* ── Input reset ──────────────────────────────────────────────────────────── */
-input, button, textarea {
+input,
+button,
+textarea {
   font-family: var(--font-mono);
   outline: none;
 }

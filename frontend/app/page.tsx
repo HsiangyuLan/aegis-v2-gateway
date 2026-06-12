@@ -27,7 +27,12 @@ import {
   useCallback,
   Suspense,
 } from "react";
-import { ArbitrageOverview } from "./components/command/ArbitrageOverview";
+import DashboardStats from "./components/DashboardStats";
+import LedgerView    from "./components/LedgerView";
+import TelemetryView from "./components/TelemetryView";
+import ExtractorView from "./components/ExtractorView";
+import VaultView     from "./components/VaultView";
+import LogsView      from "./components/LogsView";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Edges, Stars } from "@react-three/drei";
 import { motion, AnimatePresence } from "framer-motion";
@@ -104,12 +109,12 @@ function WireframeSphere({ mouseRef }: WireframeSphereProps) {
   useFrame((_state, delta) => {
     if (!groupRef.current) return;
     const t = mouseRef.current;
-    // Exponential lerp: speed = 1 - 0.04^delta ≈ 12% per frame at 60fps
-    const k = 1 - Math.pow(0.04, delta);
+    // Exponential lerp: base 0.001 → k ≈ 10.9%/frame at 60 fps (2× snappier than 0.04)
+    const k = 1 - Math.pow(0.001, delta);
     groupRef.current.rotation.y +=
-      (t.x * Math.PI * 0.6 - groupRef.current.rotation.y) * k;
+      (t.x * Math.PI * 0.95 - groupRef.current.rotation.y) * k;
     groupRef.current.rotation.x +=
-      (-t.y * Math.PI * 0.35 - groupRef.current.rotation.x) * k;
+      (-t.y * Math.PI * 0.58 - groupRef.current.rotation.x) * k;
     // Slow auto-drift when cursor is near centre
     if (Math.abs(t.x) < 0.05 && Math.abs(t.y) < 0.05) {
       groupRef.current.rotation.y += delta * 0.07;
@@ -247,11 +252,15 @@ function TopBar() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface LeftSidebarProps {
-  activeNav: string;
+  activeNav:    string;
   setActiveNav: (id: string) => void;
+  /** EXECUTE_SEQUENCE 按鈕點擊回調 */
+  onExecute:    () => void;
+  /** 是否正在執行（顯示 Pulse 動畫 + disabled 狀態） */
+  executing:    boolean;
 }
 
-function LeftSidebar({ activeNav, setActiveNav }: LeftSidebarProps) {
+function LeftSidebar({ activeNav, setActiveNav, onExecute, executing }: LeftSidebarProps) {
   return (
     <div
       style={{
@@ -330,27 +339,41 @@ function LeftSidebar({ activeNav, setActiveNav }: LeftSidebarProps) {
       {/* Execute button + reboot/exit */}
       <div style={{ padding: 12 }}>
         <motion.button
-          whileHover={{
-            boxShadow:
-              "0 0 20px rgba(0,240,255,0.5), inset 0 0 12px rgba(0,240,255,0.1)",
-            backgroundColor: "rgba(0,240,255,0.15)",
-          }}
-          whileTap={{ scale: 0.97 }}
-          transition={{ duration: 0.15 }}
+          onClick={() => void onExecute()}
+          disabled={executing}
+          // 執行期間：霓虹閃爍 Pulse 動畫
+          animate={executing ? { opacity: [0.55, 1, 0.55] } : { opacity: 1 }}
+          transition={
+            executing
+              ? { repeat: Infinity, duration: 0.75, ease: "easeInOut" }
+              : { duration: 0.15 }
+          }
+          whileHover={
+            executing
+              ? {}
+              : {
+                  boxShadow:
+                    "0 0 20px rgba(0,240,255,0.5), inset 0 0 12px rgba(0,240,255,0.1)",
+                  backgroundColor: "rgba(0,240,255,0.15)",
+                }
+          }
+          whileTap={executing ? {} : { scale: 0.97 }}
           style={{
             width: "100%",
             padding: "10px 0",
-            background: "rgba(0,240,255,0.06)",
-            border: "1px solid rgba(0,240,255,0.4)",
+            background: executing
+              ? "rgba(0,240,255,0.12)"
+              : "rgba(0,240,255,0.06)",
+            border: `1px solid ${executing ? "rgba(0,240,255,0.7)" : "rgba(0,240,255,0.4)"}`,
             color: "#00F0FF",
             fontSize: 10,
             letterSpacing: "0.2em",
-            cursor: "pointer",
+            cursor: executing ? "wait" : "pointer",
             fontFamily: "var(--font-mono, 'JetBrains Mono', monospace)",
             fontWeight: 700,
           }}
         >
-          EXECUTE_SEQUENCE
+          {executing ? "[RUNNING_SEQUENCE...]" : "EXECUTE_SEQUENCE"}
         </motion.button>
         <div
           style={{
@@ -1063,8 +1086,11 @@ function SlaMonitoringStrip() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function SovereignPage() {
-  const [activeNav, setActiveNav] = useState("terminal");
-  const mouseRef = useRef({ x: 0, y: 0 });
+  const [activeNav,  setActiveNav]  = useState("terminal");
+  const [executing,  setExecuting]  = useState(false);
+  const [showToast,  setShowToast]  = useState(false);
+  const mouseRef     = useRef({ x: 0, y: 0 });
+  const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -1075,6 +1101,35 @@ export default function SovereignPage() {
     },
     []
   );
+
+  // ── EXECUTE_SEQUENCE 主邏輯 ─────────────────────────────────────────────────
+  const handleExecute = useCallback(async () => {
+    if (executing) return;
+    setExecuting(true);
+    try {
+      const apiBase =
+        (process.env.NEXT_PUBLIC_AEGIS_API_URL as string | undefined) ??
+        "http://127.0.0.1:8000";
+      const res = await fetch(`${apiBase}/api/agent/execute`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action_type: "THREAT_ANALYSIS" }),
+      });
+      if (res.ok) {
+        // 無閃爍聯動：通知 LedgerView 默默重拉資料 + 觸發骨牌動畫
+        window.dispatchEvent(new Event("refresh-ledger"));
+        // 啟動 Toast（清除舊 timer 防止疊加）
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+        setShowToast(true);
+        toastTimerRef.current = setTimeout(() => setShowToast(false), 2500);
+      }
+    } catch (err: unknown) {
+      // 靜默捕捉，後端已有 Fail-Closed 保護
+      console.error("[EXECUTE_SEQUENCE] fetch error:", err);
+    } finally {
+      setExecuting(false);
+    }
+  }, [executing]);
 
   return (
     <div
@@ -1091,11 +1146,78 @@ export default function SovereignPage() {
         userSelect: "none",
       }}
     >
+      {/* ── SEC_ALERT Toast Overlay ──────────────────────────────────────────── */}
+      <AnimatePresence>
+        {showToast && (
+          <motion.div
+            key="sec-alert-toast"
+            initial={{ x: 120, opacity: 0, scale: 1.02 }}
+            animate={{ x: 0,   opacity: 1, scale: 1    }}
+            exit={{    x: 120, opacity: 0, scale: 0.98  }}
+            transition={{ type: "spring", stiffness: 420, damping: 32 }}
+            style={{
+              position: "fixed",
+              top: 52,
+              right: 16,
+              zIndex: 9999,
+              display: "flex",
+              alignItems: "stretch",
+              background: "var(--bg-panel)",
+              border: "1px solid rgba(0,240,255,0.22)",
+              boxShadow:
+                "0 4px 28px rgba(0,0,0,0.45), 0 0 12px rgba(0,240,255,0.06)",
+              overflow: "hidden",
+              maxWidth: 380,
+              pointerEvents: "none",
+            }}
+          >
+            {/* 左側 2px 暗紅高亮光條（物理撞擊阻尼感音效隱喻） */}
+            <div
+              style={{
+                width: 2,
+                background: "var(--danger)",
+                boxShadow: "0 0 6px var(--danger)",
+                flexShrink: 0,
+              }}
+            />
+            <div style={{ padding: "10px 16px" }}>
+              <div
+                style={{
+                  color: "var(--danger)",
+                  fontSize: 9,
+                  fontWeight: 700,
+                  letterSpacing: "0.18em",
+                  textTransform: "uppercase",
+                  marginBottom: 4,
+                }}
+              >
+                [SEC_ALERT]
+              </div>
+              <div
+                style={{
+                  color: "var(--text-primary)",
+                  fontSize: 10,
+                  letterSpacing: "0.07em",
+                  lineHeight: 1.5,
+                }}
+              >
+                TARGET INJECTION BLOCKED. LOGGED TO WAL LEDGER.
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <TopBar />
 
       {/* ── Body row ── */}
       <div style={{ flex: 1, display: "flex", overflow: "hidden" }}>
-        <LeftSidebar activeNav={activeNav} setActiveNav={setActiveNav} />
+        <LeftSidebar
+          activeNav={activeNav}
+          setActiveNav={setActiveNav}
+          onExecute={handleExecute}
+          executing={executing}
+        />
 
         {/* ── Main content column ── */}
         <div
@@ -1106,229 +1228,238 @@ export default function SovereignPage() {
             overflow: "hidden",
           }}
         >
-          {/* ── Top row: 3D Globe + Integrity ── */}
-          <div
-            style={{
-              flexShrink: 0,
-              display: "flex",
-              borderBottom: "1px solid rgba(0,240,255,0.08)",
-            }}
-          >
-            {/* Center: globe + capital */}
-            <div
-              className="sv-glass-panel"
-              style={{
-                flex: 1,
-                position: "relative",
-                height: 260,
-                borderRight: "1px solid rgba(0,240,255,0.08)",
-                overflow: "hidden",
-                background:
-                  "radial-gradient(ellipse at center, rgba(2,13,24,0.92) 0%, rgba(5,5,8,0.85) 70%)",
-              }}
-            >
-              {/* Section label */}
+          {/* ══ TERMINAL view (default) ══════════════════════════════════════ */}
+          {activeNav === "terminal" && (
+            <>
+              {/* ── Top row: 3D Globe + Integrity ── */}
               <div
                 style={{
-                  position: "absolute",
-                  top: 14,
-                  left: 18,
-                  zIndex: 2,
+                  flexShrink: 0,
                   display: "flex",
-                  alignItems: "center",
-                  gap: 6,
+                  borderBottom: "1px solid rgba(0,240,255,0.08)",
                 }}
               >
+                {/* Center: globe + capital */}
                 <div
+                  className="sv-glass-panel"
                   style={{
-                    width: 6,
-                    height: 6,
-                    background: "#00F0FF",
-                    boxShadow: "0 0 6px #00F0FF",
-                  }}
-                />
-                <span className="sv-label">INGESTION_CORE · FINOPS</span>
-              </div>
-
-              {/* R3F Canvas */}
-              <Suspense fallback={null}>
-                <Canvas
-                  camera={{ position: [0, 0, 5.5], fov: 42 }}
-                  style={{
-                    position: "absolute",
-                    inset: 0,
-                    background: "transparent",
-                  }}
-                  gl={{ alpha: true, antialias: true }}
-                >
-                  <Stars
-                    radius={90}
-                    depth={60}
-                    count={2500}
-                    factor={3}
-                    fade
-                    speed={0.4}
-                  />
-                  <ambientLight intensity={0.03} />
-                  <WireframeSphere mouseRef={mouseRef} />
-                </Canvas>
-              </Suspense>
-
-              {/* Capital text overlay */}
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  pointerEvents: "none",
-                  zIndex: 2,
-                }}
-              >
-                <div
-                  className="neon-text-lg"
-                  style={{
-                    fontSize: "clamp(22px, 4vw, 40px)",
-                    fontWeight: 700,
-                    letterSpacing: "-0.02em",
-                    lineHeight: 1.15,
-                    animation: "neon-pulse 3s ease-in-out infinite",
-                    textAlign: "center",
-                    maxWidth: 520,
+                    flex: 1,
+                    position: "relative",
+                    height: 260,
+                    borderRight: "1px solid rgba(0,240,255,0.08)",
+                    overflow: "hidden",
+                    background:
+                      "radial-gradient(ellipse at center, rgba(2,13,24,0.92) 0%, rgba(5,5,8,0.85) 70%)",
                   }}
                 >
-                  &gt;$90K/YR COMPUTE ARB · $100K VISA NARRATIVE
-                </div>
-                <div
-                  style={{
-                    marginTop: 10,
-                    fontSize: 10,
-                    letterSpacing: "0.14em",
-                    color: "#4a8a9a",
-                    textAlign: "center",
-                  }}
-                >
-                  PORTFOLIO MODEL — NOT LEGAL OR TAX ADVICE
-                </div>
-              </div>
-
-              {/* Bottom stats row */}
-              <div
-                style={{
-                  position: "absolute",
-                  bottom: 14,
-                  left: 18,
-                  right: 18,
-                  display: "flex",
-                  gap: 28,
-                  zIndex: 3,
-                  pointerEvents: "none",
-                }}
-              >
-                {[
-                  { label: "CACHE_HIT_MODEL", val: "80%",     color: "#00ff88" },
-                  { label: "P99_LATENCY_DEMO", val: "12.4 MS", color: "#c8eef5" },
-                  { label: "CIRCUIT_STATE",    val: "CLOSED",  color: "#c8eef5" },
-                ].map(s => (
-                  <div key={s.label}>
+                  {/* Section label */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: 14,
+                      left: 18,
+                      zIndex: 2,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 6,
+                    }}
+                  >
                     <div
-                      className="sv-label"
-                      style={{ fontSize: 8, marginBottom: 2 }}
+                      style={{
+                        width: 6,
+                        height: 6,
+                        background: "#00F0FF",
+                        boxShadow: "0 0 6px #00F0FF",
+                      }}
+                    />
+                    <span className="sv-label">INGESTION_CORE · FINOPS</span>
+                  </div>
+
+                  {/* R3F Canvas */}
+                  <Suspense fallback={null}>
+                    <Canvas
+                      camera={{ position: [0, 0, 5.5], fov: 42 }}
+                      style={{
+                        position: "absolute",
+                        inset: 0,
+                        background: "transparent",
+                      }}
+                      gl={{ alpha: true, antialias: true }}
                     >
-                      {s.label}
+                      <Stars
+                        radius={90}
+                        depth={60}
+                        count={2500}
+                        factor={3}
+                        fade
+                        speed={0.4}
+                      />
+                      <ambientLight intensity={0.03} />
+                      <WireframeSphere mouseRef={mouseRef} />
+                    </Canvas>
+                  </Suspense>
+
+                  {/* Capital text overlay */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      inset: 0,
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      pointerEvents: "none",
+                      zIndex: 2,
+                    }}
+                  >
+                    <div
+                      className="neon-text-lg"
+                      style={{
+                        fontSize: "clamp(22px, 4vw, 40px)",
+                        fontWeight: 700,
+                        letterSpacing: "-0.02em",
+                        lineHeight: 1.15,
+                        animation: "neon-pulse 3s ease-in-out infinite",
+                        textAlign: "center",
+                        maxWidth: 520,
+                      }}
+                    >
+                      &gt;$90K/YR COMPUTE ARB · $100K VISA NARRATIVE
                     </div>
                     <div
                       style={{
-                        color: s.color,
-                        fontSize: 14,
-                        fontWeight: 700,
-                        letterSpacing: "0.02em",
+                        marginTop: 10,
+                        fontSize: 10,
+                        letterSpacing: "0.14em",
+                        color: "#4a8a9a",
+                        textAlign: "center",
                       }}
                     >
-                      {s.val}
+                      PORTFOLIO MODEL — NOT LEGAL OR TAX ADVICE
                     </div>
+                  </div>
+
+                  {/* Bottom stats row */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      bottom: 14,
+                      left: 18,
+                      right: 18,
+                      display: "flex",
+                      gap: 28,
+                      zIndex: 3,
+                      pointerEvents: "none",
+                    }}
+                  >
+                    {[
+                      { label: "CACHE_HIT_MODEL",  val: "80%",     color: "#00ff88" },
+                      { label: "P99_LATENCY_DEMO",  val: "12.4 MS", color: "#c8eef5" },
+                      { label: "CIRCUIT_STATE",     val: "CLOSED",  color: "#c8eef5" },
+                    ].map(s => (
+                      <div key={s.label}>
+                        <div className="sv-label" style={{ fontSize: 8, marginBottom: 2 }}>
+                          {s.label}
+                        </div>
+                        <div
+                          style={{ color: s.color, fontSize: 14, fontWeight: 700, letterSpacing: "0.02em" }}
+                        >
+                          {s.val}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Right: system integrity */}
+                <div
+                  className="sv-glass-panel sv-glow-purple"
+                  style={{
+                    width: 280,
+                    flexShrink: 0,
+                    padding: "14px 16px",
+                    background: "var(--bg-panel)",
+                  }}
+                >
+                  <SystemIntegrityChart />
+                </div>
+              </div>
+
+              <SlaMonitoringStrip />
+
+              {/* ── SecOps Golden Signals (live data via DashboardStats) ── */}
+              <div
+                className="sv-glass-panel"
+                style={{
+                  flexShrink: 0,
+                  padding: "14px 20px",
+                  borderBottom: "1px solid rgba(0,240,255,0.14)",
+                  background:
+                    "linear-gradient(105deg, rgba(0,18,32,0.90) 0%, rgba(18,6,32,0.60) 50%, rgba(0,8,18,0.94) 100%)",
+                }}
+              >
+                <DashboardStats />
+              </div>
+
+              {/* ── Asset bar ── */}
+              <div
+                style={{
+                  flexShrink: 0,
+                  display: "flex",
+                  borderBottom: "1px solid rgba(0,240,255,0.08)",
+                }}
+              >
+                {ASSETS.map((a, i) => (
+                  <div
+                    key={a.pair}
+                    style={{
+                      flex: 1,
+                      borderRight:
+                        i < ASSETS.length - 1
+                          ? "1px solid rgba(0,240,255,0.08)"
+                          : "none",
+                    }}
+                  >
+                    <AssetCard {...a} />
                   </div>
                 ))}
               </div>
-            </div>
 
-            {/* Right: system integrity */}
-            <div
-              className="sv-glass-panel sv-glow-purple"
-              style={{
-                width: 280,
-                flexShrink: 0,
-                padding: "14px 16px",
-                background: "var(--bg-panel)",
-              }}
-            >
-              <SystemIntegrityChart />
-            </div>
-          </div>
-
-          <SlaMonitoringStrip />
-          <ArbitrageOverview apiBase={API} />
-
-          {/* ── Asset bar ── */}
-          <div
-            style={{
-              flexShrink: 0,
-              display: "flex",
-              borderBottom: "1px solid rgba(0,240,255,0.08)",
-            }}
-          >
-            {ASSETS.map((a, i) => (
+              {/* ── Bottom row: transactions + PII feed ── */}
               <div
-                key={a.pair}
-                style={{
-                  flex: 1,
-                  borderRight:
-                    i < ASSETS.length - 1
-                      ? "1px solid rgba(0,240,255,0.08)"
-                      : "none",
-                }}
+                style={{ flex: 1, display: "flex", overflow: "hidden", minHeight: 0 }}
               >
-                <AssetCard {...a} />
+                <div
+                  style={{
+                    flex: 1,
+                    padding: "14px 16px",
+                    borderRight: "1px solid rgba(0,240,255,0.08)",
+                    overflow: "hidden",
+                  }}
+                >
+                  <TransactionFeed />
+                </div>
+                <div
+                  style={{
+                    width: 380,
+                    flexShrink: 0,
+                    padding: "14px 16px",
+                    overflow: "hidden",
+                    background: "rgba(0,4,8,0.5)",
+                  }}
+                >
+                  <PiiScanFeed />
+                </div>
               </div>
-            ))}
-          </div>
+            </>
+          )}
 
-          {/* ── Bottom row: transactions + PII feed ── */}
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              overflow: "hidden",
-              minHeight: 0,
-            }}
-          >
-            {/* Transactions */}
-            <div
-              style={{
-                flex: 1,
-                padding: "14px 16px",
-                borderRight: "1px solid rgba(0,240,255,0.08)",
-                overflow: "hidden",
-              }}
-            >
-              <TransactionFeed />
-            </div>
-
-            {/* PII scan */}
-            <div
-              style={{
-                width: 380,
-                flexShrink: 0,
-                padding: "14px 16px",
-                overflow: "hidden",
-                background: "rgba(0,4,8,0.5)",
-              }}
-            >
-              <PiiScanFeed />
-            </div>
-          </div>
+          {/* ══ Non-terminal views ═════════════════════════════════════════ */}
+          {activeNav === "ledger"    && <LedgerView    />}
+          {activeNav === "telemetry" && <TelemetryView />}
+          {activeNav === "extractor" && <ExtractorView />}
+          {activeNav === "vault"     && <VaultView     />}
+          {activeNav === "logs"      && <LogsView      />}
         </div>
       </div>
 

@@ -16,6 +16,16 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 from functools import lru_cache
+from pathlib import Path
+
+# 自動載入專案根目錄的 .env 檔（開發環境便利性；生產環境由 OS 環境變數覆蓋）
+try:
+    from dotenv import load_dotenv
+
+    _env_path = Path(__file__).resolve().parents[2] / ".env"
+    load_dotenv(dotenv_path=_env_path, override=False)
+except ImportError:
+    pass  # python-dotenv 未安裝時靜默跳過，依賴 OS 環境變數
 
 
 @dataclass(frozen=True)
@@ -120,6 +130,19 @@ class Settings:
     # After quality: ambiguity ≥ this ⇒ Monarch tier (else Scholar).
     cascade_monarch_uncertainty: float
 
+    # ── FinOps Ledger SQLite ──────────────────────────────────────────────────
+    # 本地 SQLite 檔案路徑，儲存所有 LLM 推理交易的 Token / USD 紀錄。
+    # 由 app/db/ledger_db.py 管理；lifespan 啟動時自動建立資料表。
+    finops_ledger_db_path: str
+
+    # ── Foundry / GitHub Models (SecOps LLM 推理引擎) ────────────────────────
+    # GitHub Personal Access Token，用於存取 GitHub Models GPT-4o 算力。
+    # 從 .env 的 FOUNDRY_API_KEY 讀取；空字串代表未設定（呼叫時會觸發 Fail-Closed）。
+    foundry_api_key: str
+
+    # GitHub Models API Base URL（相容 OpenAI SDK base_url 格式）。
+    foundry_endpoint: str
+
     # ── Phase 2: Disaggregated Worker Registry ────────────────────────────────
     # Comma-separated list of disaggregated worker base URLs.
     # Empty list (default) disables Phase 2; the system falls back to Sprint 3
@@ -218,7 +241,15 @@ def get_settings() -> Settings:
         finops_gemini_cost_per_word_usd=float(
             os.environ.get("AEGIS_FINOPS_GEMINI_COST_PER_WORD_USD", "0.000003")
         ),
+        finops_ledger_db_path=os.environ.get(
+            "AEGIS_FINOPS_LEDGER_DB_PATH", "./finops_ledger.db"
+        ),
         log_level=os.environ.get("AEGIS_LOG_LEVEL", "INFO"),
+        # Foundry / GitHub Models
+        foundry_api_key=os.environ.get("FOUNDRY_API_KEY", ""),
+        foundry_endpoint=os.environ.get(
+            "FOUNDRY_ENDPOINT", "https://models.inference.ai.azure.com"
+        ),
         rust_fast_model_path=os.environ.get(
             "AEGIS_RUST_FAST_MODEL_PATH",
             "models/minilm-v2-int8.onnx",

@@ -1,5 +1,5 @@
 """
-Aegis V2 Gateway – Phase 5: FinOps API Bridge
+Aegis V2 Gateway – Phase 6: Dashboard Stats API
 
 Entry point.  The lifespan handler now manages seven singletons:
 
@@ -9,7 +9,10 @@ Entry point.  The lifespan handler now manages seven singletons:
   4. RequestLogger + Parquet flush task     (Sprint 3)
   5. WorkerRegistryState + PrefixCacheIndex (Phase 2)
   6. KVAwareRouter + worker_registry_loop   (Phase 2)
-  7. FinOpsAnalyticsEngine                  (Phase 5 — NEW)
+  7. FinOpsAnalyticsEngine                  (Phase 5)
+
+新增路由（Phase 6 — Hackathon Dashboard）
+  GET /api/dashboard/stats — SecOps 黃金指標聚合，供前端 Dashboard 直接 fetch
 
 Shutdown order (CRITICAL — do not reorder)
 ──────────────────────────────────────────
@@ -32,9 +35,11 @@ from typing import AsyncIterator
 import httpx
 import uvicorn
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.agents.secops_agent import SecOpsReasoningAgent
 from app.core.config import get_settings
+from app.db.ledger_db import init_ledger_db
 from app.observability.analytics import AgentInferenceLogger, FinOpsAnalyticsEngine
 from app.observability.parquet_logger import RequestLogger
 from app.resilience.circuit_breaker import CircuitBreaker, CircuitBreakerBackend
@@ -144,12 +149,20 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     analytics_engine = FinOpsAnalyticsEngine(settings=settings)
     app.state.analytics_engine = analytics_engine
 
+    # ── FinOps Ledger SQLite 初始化 ────────────────────────────────────────────
+    # 在 SecOpsAgent 啟動前確保資料表已建立，避免首次推理時寫入競爭。
+    try:
+        await init_ledger_db(settings.finops_ledger_db_path)
+    except Exception:
+        logger.error(
+            "FinOps Ledger DB 初始化失敗，推理交易將無法持久化。",
+            exc_info=True,
+        )
+
     # ── Hackathon: SecOps Agent + 推理記錄器 ──────────────────────────────────
-    # SecOpsReasoningAgent 為無狀態 Agent；Foundry IQ endpoint 由環境變數注入。
+    # SecOpsReasoningAgent 透過 FOUNDRY_API_KEY / FOUNDRY_ENDPOINT 自動讀取設定。
     # AgentInferenceLogger 將每次推理結果寫入 JSONL，供 TCO 儀表板分析。
-    secops_agent = SecOpsReasoningAgent(
-        foundry_iq_endpoint=getattr(settings, "foundry_iq_endpoint", None)
-    )
+    secops_agent = SecOpsReasoningAgent()
     agent_logger = AgentInferenceLogger(log_dir=settings.finops_log_dir)
     app.state.secops_agent = secops_agent
     app.state.agent_logger = agent_logger
@@ -271,10 +284,39 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# ── CORS 中介層（緊接 FastAPI 宣告之後掛載，確保所有路由均受保護）─────────────
+# allow_origins: 本地開發白名單，嚴格限定 Next.js dev server 來源。
+# allow_origin_regex: 動態覆蓋所有 Vercel Preview / Production 網域，
+#   無須每次 PR 部署後手動更新白名單（符合 FastAPI 官方安全建議）。
+# allow_credentials=True: 支援 Cookie / Authorization header 跨域傳遞。
+# allow_methods / allow_headers=["*"]: 允許前端任意方法與標頭，
+#   讓 Preflight OPTIONS 請求一律通過，不阻塞正式請求。
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",     # Next.js 本地開發伺服器
+        "http://127.0.0.1:3000",    # IPv4 明確位址（避免 IPv6 衝突）
+        "http://localhost:3001",     # Next.js 備用 dev port
+        "http://127.0.0.1:3001",    # IPv4 明確位址（備用 port）
+    ],
+    allow_origin_regex=r"https://.*\.vercel\.app",  # 所有 Vercel 預覽與生產網域
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 # Import after ``app`` is created to avoid circular imports.
 from app.api.routes import router  # noqa: E402
+from app.api.dashboard import router as dashboard_router  # noqa: E402
+from app.api.telemetry import router as telemetry_router  # noqa: E402
+from app.api.ledger import router as ledger_router  # noqa: E402
+from app.api.agent import router as agent_router  # noqa: E402
 
 app.include_router(router)
+app.include_router(dashboard_router)
+app.include_router(telemetry_router)
+app.include_router(ledger_router)
+app.include_router(agent_router)
 
 
 # ── Dev-mode entry point ──────────────────────────────────────────────────────
