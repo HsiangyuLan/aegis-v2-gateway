@@ -1,4 +1,12 @@
+
+
 # 🛡️ Aegis V2 - Cyber-Defense RPG & Multi-Agent Reasoning Visualizer
+
+> 🚨 **IMPORTANT: OFFICIAL DEMO VIDEO**
+>
+> [![Aegis V2 Demo](https://img.youtube.com/vi/K-zPiWOybBg/maxresdefault.jpg)](https://youtu.be/K-zPiWOybBg?si=wmNPA748uhkvgDxR)
+>
+> *Click the image above to watch the full Aegis V2 system demonstration. (Hosted on YouTube due to GitHub's file limits)*
 
 Aegis V2 is a production-grade cyber-security war-gaming RPG and multi-agent reasoning engine designed specifically for the **2026 Microsoft Agents League Hackathon (Track 2: Reasoning Agents - Challenge B: Role-Play Game System)**. The system translates raw, high-throughput host infrastructure telemetry and application-layer security payloads into an interactive, real-time cyber-defense RPG simulation. It acts as an immersive "Cyber-Wargame" where automated adversaries battle cognitive security barriers in real-time.
 
